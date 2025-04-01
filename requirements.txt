@@ -1,0 +1,9 @@
+streamlit
+opencv-python
+tensorflow
+keras
+numpy
+pandas
+requests
+spotipy
+Pillow
