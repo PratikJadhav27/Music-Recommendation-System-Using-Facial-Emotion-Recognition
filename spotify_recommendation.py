@@ -14,20 +14,37 @@ emotion_genre_map = {
 
 def get_playlist_for_emotion(emotion):
     """Fetch Spotify playlists based on detected emotion."""
-    sp = authenticate_spotify()
+    try:
+        sp = authenticate_spotify()
+        
+        # Check if authentication failed
+        if sp is None:
+            return []
+        
+        # Select a random genre from the list
+        genre = random.choice(emotion_genre_map.get(emotion, ["pop"]))  # Default to 'pop' if not found
+        
+        # Fetch playlists from Spotify
+        results = sp.search(q=genre, type="playlist", limit=5)
+        
+        # Check if results is None or missing expected structure
+        if results is None or "playlists" not in results or results["playlists"] is None:
+            return []
+        
+        playlists = []
+        for playlist in results["playlists"]["items"]:
+            # Skip if playlist data is missing or malformed
+            if playlist is None:
+                continue
+            
+            playlists.append({
+                "name": playlist.get("name", "Unknown Playlist"),
+                "url": playlist.get("external_urls", {}).get("spotify", "#"),
+                "image": playlist.get("images", [{}])[0].get("url") if playlist.get("images") else None
+            })
+        
+        return playlists
     
-    # Select a random genre from the list
-    genre = random.choice(emotion_genre_map.get(emotion, ["pop"]))  # Default to 'pop' if not found
-    
-    # Fetch playlists from Spotify
-    results = sp.search(q=genre, type="playlist", limit=5)
-    
-    playlists = []
-    for playlist in results["playlists"]["items"]:
-        playlists.append({
-            "name": playlist["name"],
-            "url": playlist["external_urls"]["spotify"],
-            "image": playlist["images"][0]["url"] if playlist["images"] else None
-        })
-    
-    return playlists
+    except Exception as e:
+        print(f"Error fetching playlists: {e}")
+        return []

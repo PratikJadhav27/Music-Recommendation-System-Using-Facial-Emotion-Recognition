@@ -35,7 +35,12 @@ pip install -r requirements.txt
 3. Set up Spotify API credentials:
    - Create a Spotify Developer account at [developer.spotify.com](https://developer.spotify.com)
    - Create a new application to get your Client ID and Client Secret
-   - Update the `CLIENT_ID` and `CLIENT_SECRET` variables in `spotify_auth.py`
+   - Create a `.env` file in the project root directory with your credentials:
+     ```
+     SPOTIFY_CLIENT_ID=your_client_id_here
+     SPOTIFY_CLIENT_SECRET=your_client_secret_here
+     ```
+   - Never commit the `.env` file to version control (it's already in `.gitignore`)
 
 4. Download the pre-trained model (if not included in the repository):
    - The trained model file `fer_model.h5` should be placed in the `Model` directory
