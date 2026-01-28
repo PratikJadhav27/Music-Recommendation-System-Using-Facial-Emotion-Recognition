@@ -1,6 +1,6 @@
-streamlit
-opencv-python
-tensorflow
-spotipy
-Pillow
-python-dotenv
+streamlit==1.53.1
+opencv-python==4.13.0.90
+tensorflow==2.20.0
+spotipy==2.25.2
+Pillow==12.1.0
+python-dotenv==1.2.1
