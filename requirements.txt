@@ -3,3 +3,4 @@ opencv-python
 tensorflow
 spotipy
 Pillow
+python-dotenv
