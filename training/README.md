@@ -58,6 +58,26 @@ python evaluate_model.py
 
 ---
 
+### `train_transfer_learning.py`
+Trains a MobileNetV2 model using transfer learning.
+
+**Why Transfer Learning?**
+- Uses weights pre-trained on ImageNet (millions of images)
+- Better feature extraction than training from scratch
+- Faster convergence and better generalizability
+
+**Usage:**
+```bash
+cd training
+python train_transfer_learning.py
+```
+
+**Outputs:**
+- `../Model/fer_mobilenet.h5` - Trained MobileNetV2 model
+- `../Model/training_history_mobilenet.png` - Training curves
+
+---
+
 ## Expected Directory Structure
 
 ```
