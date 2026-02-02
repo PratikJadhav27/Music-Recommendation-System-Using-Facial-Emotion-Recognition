@@ -78,6 +78,23 @@ python train_transfer_learning.py
 
 ---
 
+### `train_balanced.py`
+Trains the model using **Weighted Loss** to handle class imbalance.
+- Automatically calculates class weights (inverse frequency)
+- Penalizes misclassifications of minority classes (Disgust, Fear) more heavily
+
+**Usage:**
+```bash
+cd training
+python train_balanced.py
+```
+
+**Outputs:**
+- `../Model/fer_balanced.h5` - Trained Balanced model
+- `../Model/training_history_balanced.png` - Training curves
+
+---
+
 ## Expected Directory Structure
 
 ```
