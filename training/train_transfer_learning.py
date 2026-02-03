@@ -24,10 +24,13 @@ np.random.seed(42)
 tf.random.set_seed(42)
 
 # Paths
-DATASET_DIR = os.path.join("..", "dataset")
+# Use absolute paths based on this script's location
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+DATASET_DIR = os.path.join(PROJECT_ROOT, "dataset")
 TRAIN_DIR = os.path.join(DATASET_DIR, "train")
 TEST_DIR = os.path.join(DATASET_DIR, "test")
-MODEL_SAVE_PATH = os.path.join("..", "Model", "fer_mobilenet.h5")
+MODEL_SAVE_PATH = os.path.join(PROJECT_ROOT, "Model", "fer_mobilenet.h5")
 
 # Hyperparameters
 IMG_SIZE = 48
@@ -160,7 +163,7 @@ plt.title('MobileNetV2 Loss')
 plt.legend()
 plt.grid(True)
 
-plot_path = os.path.join("..", "Model", "training_history_mobilenet.png")
+plot_path = os.path.join(PROJECT_ROOT, "Model", "training_history_mobilenet.png")
 plt.savefig(plot_path)
 print(f"Plots saved to {plot_path}")
 print(f"Model saved to {MODEL_SAVE_PATH}")
