@@ -58,7 +58,7 @@ if image:
             # Fetch and Display Spotify Playlists
             st.subheader("🎵 Recommended Playlists for You:")
             with st.spinner("🔄 Fetching playlists..."):
-                playlists = get_playlist_for_emotion(emotion)
+                playlists = get_playlist_for_emotion(emotion, confidence_scores)
             
             if playlists:
                 for playlist in playlists:
