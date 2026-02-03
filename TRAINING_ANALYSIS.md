@@ -191,4 +191,31 @@ To reach 9/10, we need:
 - Phase 4: User feedback loop
 - Phase 5: Documentation and MLOps practices
 
-**Ready to proceed with Phase 2!**
+---
+
+## 8. Phase 2 Results: Class Imbalance Handling
+
+### Implementation
+- **Technique:** Weighted Categorical Crossentropy
+- **Weights Applied:** Inverse frequency (High weight for Disgust/Fear, low for Happy)
+
+### Baseline vs Balanced Comparison
+
+| Emotion  | Baseline Recall | Balanced Recall | Change | Impact |
+|----------|-----------------|-----------------|--------|--------|
+| **Disgust** | 52.25% | **72.07%** | **+19.8%** | ✅ HUGE SUCCESS |
+| **Fear**    | 40.23% | 41.99% | +1.7% | 😐 Marginal |
+| **Happy**   | 90.19% | 82.92% | -7.2% | 📉 Tradeoff |
+| **Sad**     | 57.66% | 47.31% | -10.3% | 📉 Tradeoff |
+| **Accuracy**| 69.16% | 66.52% | -2.6% | Acceptable |
+
+### Analysis
+1. **The Disgust Win:** The weighted loss successfully forced the model to learn "Disgust" features, improving recall by ~20%. This validates the Class Imbalance hypothesis.
+2. **The Happiness Cost:** Because the model was penalized heavily for missing Disgust/Fear, it became more conservative, causing "Happy" (the easiest class) recall to drop.
+3. **The Fear Challenge:** Fear improved slightly but remains the hardest class. It likely shares too many features with Sad/Neutral for simple weighting to fix. It might need more data or a better architecture (MobileNetV2 fine-tuning might help here if trained longer).
+
+### Conclusion for Interviews
+"I implemented class weighting which improved minority class recall (Disgust) by 20% at the cost of 2.6% overall accuracy. This demonstrates the classic Precision-Recall tradeoff in imbalanced datasets."
+
+---
+
