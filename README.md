@@ -189,7 +189,7 @@ pip install -r requirements.txt
 
 ### Run the Application
 ```bash
-streamlit run streamlit_app.py
+streamlit run app.py
 ```
 
 The app will open at `http://localhost:8501`
@@ -275,7 +275,7 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 ├── spotify_auth.py                # Spotify API authentication
 ├── spotify_recommendation.py      # Probabilistic playlist logic
 ├── feedback_manager.py            # Feedback logging system
-├── streamlit_app.py               # Main web application
+├── app.py               # Main web application
 ├── requirements.txt               # Python dependencies
 ├── .env                           # API credentials (not in repo)
 └── TRAINING_ANALYSIS.md           # Detailed model analysis
