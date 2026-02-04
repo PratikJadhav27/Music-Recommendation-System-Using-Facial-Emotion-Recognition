@@ -60,14 +60,47 @@ if image:
             with st.spinner("🔄 Fetching playlists..."):
                 playlists = get_playlist_for_emotion(emotion, confidence_scores)
             
+            
             if playlists:
-                for playlist in playlists:
-                    col1, col2 = st.columns([1, 4])
+                for idx, playlist in enumerate(playlists):
+                    col1, col2, col3 = st.columns([1, 5, 1])
+                    
                     with col1:
                         if playlist["image"]:
                             st.image(playlist["image"], width=100)
+                    
                     with col2:
-                        st.markdown(f"[{playlist['name']}]({playlist['url']})")
+                        st.markdown(f"**[{playlist['name']}]({playlist['url']})**")
+                    
+                    with col3:
+                        # Feedback buttons
+                        feedback_col1, feedback_col2 = st.columns(2)
+                        
+                        with feedback_col1:
+                            if st.button("👍", key=f"like_{idx}"):
+                                from feedback_manager import log_feedback
+                                success = log_feedback(
+                                    emotion=emotion,
+                                    confidence_scores=confidence_scores,
+                                    playlist_name=playlist["name"],
+                                    playlist_url=playlist["url"],
+                                    rating=1
+                                )
+                                if success:
+                                    st.success("Thanks for the feedback!", icon="✅")
+                        
+                        with feedback_col2:
+                            if st.button("👎", key=f"dislike_{idx}"):
+                                from feedback_manager import log_feedback
+                                success = log_feedback(
+                                    emotion=emotion,
+                                    confidence_scores=confidence_scores,
+                                    playlist_name=playlist["name"],
+                                    playlist_url=playlist["url"],
+                                    rating=-1
+                                )
+                                if success:
+                                    st.info("Feedback noted!", icon="ℹ️")
             else:
                 st.warning("⚠️ No playlists found. Please check your Spotify API credentials in the .env file.")
     
