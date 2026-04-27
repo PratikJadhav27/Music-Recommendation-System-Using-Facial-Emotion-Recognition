@@ -152,25 +152,6 @@ From the confusion matrix, the biggest confusion patterns are:
 
 ---
 
-## 7. Interview Talking Points
-
-When discussing this project in interviews, highlight:
-
-### Technical Depth
-- "Trained two architectures: custom CNN and MobileNetV2 transfer learning"
-- "Achieved 69% accuracy, with Happy emotion at 89% F1-score"
-- "Identified class imbalance as key issue - Disgust only 1.5% of data"
-
-### ML Maturity
-- "Analyzed confusion matrix to understand failure modes"
-- "Fear/Sad/Neutral form a confusion triangle due to subtle facial differences"
-- "Implemented proper train/val split with callbacks to prevent overfitting"
-
-### Real-World Awareness
-- "Acknowledged dataset limitations - FER-2013 has known biases"
-- "Planned Phase 2 to address class imbalance with weighted loss"
-- "Considered deployment tradeoffs - MobileNetV2 is 3x smaller for edge devices"
-
 ---
 
 ## Conclusion
@@ -182,8 +163,6 @@ We have successfully:
 - Evaluated with proper metrics (Precision, Recall, F1, Confusion Matrix)
 - Analyzed failure modes and identified root causes
 - Compared multiple architectures
-
-**This project is now at ~7.5/10 for ML interviews.**
 
 To reach 9/10, we need:
 - Phase 2: Class imbalance handling ✅ Ready to implement
@@ -214,8 +193,8 @@ To reach 9/10, we need:
 2. **The Happiness Cost:** Because the model was penalized heavily for missing Disgust/Fear, it became more conservative, causing "Happy" (the easiest class) recall to drop.
 3. **The Fear Challenge:** Fear improved slightly but remains the hardest class. It likely shares too many features with Sad/Neutral for simple weighting to fix. It might need more data or a better architecture (MobileNetV2 fine-tuning might help here if trained longer).
 
-### Conclusion for Interviews
-"I implemented class weighting which improved minority class recall (Disgust) by 20% at the cost of 2.6% overall accuracy. This demonstrates the classic Precision-Recall tradeoff in imbalanced datasets."
+### Final Technical Conclusion
+Implementing class weighting improved minority class recall (Disgust) by 20% at the cost of 2.6% overall accuracy. This clearly demonstrates the classic Precision-Recall tradeoff in imbalanced datasets and validates the weighted loss approach.
 
 ---
 
