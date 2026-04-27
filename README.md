@@ -32,8 +32,6 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 - **Uses probabilistic modeling** instead of simple argmax classification
 - **Implements a feedback loop** to collect user preferences for continuous improvement
 
-**Perfect for ML/AI interviews** - demonstrates deep understanding of model training, evaluation, and deployment.
-
 ---
 
 ## ✨ Key Features
@@ -324,20 +322,6 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 - [ ] **Deployment**: Dockerize the application for easy deployment
 
 ---
-
-## 🎤 Interview Talking Points
-
-**"Tell me about a challenging ML project you've worked on."**
-
-> "I built an emotion-based music recommendation system from scratch. The interesting challenge was handling class imbalance - the 'Disgust' emotion was only 1.5% of the dataset, causing the model to ignore it. I implemented weighted loss functions, which improved Disgust recall by 20% at a 2.6% accuracy tradeoff. This taught me the importance of precision-recall tradeoffs in real-world ML."
-
-**"How do you evaluate ML models?"**
-
-> "I use multiple metrics: accuracy, per-class precision/recall, F1-scores, and confusion matrices. For this project, I discovered that 'Fear' and 'Sad' were frequently confused due to similar facial features. This led me to explore transfer learning with MobileNetV2, which provided better feature extraction."
-
-**"How do you think about production ML systems?"**
-
-> "I moved beyond simple classification to probabilistic modeling - instead of just saying 'you're happy', the system understands 'you're 70% happy and 30% nostalgic', and mixes playlists accordingly. I also built a feedback loop to collect user preferences, creating a dataset for future personalization models. This demonstrates data-centric AI thinking."
 
 ---
 
