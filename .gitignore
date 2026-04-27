@@ -5,6 +5,4 @@ __pycache__/
 dataset/
 data/
 .cache
-INTERVIEW_PREP.*
-PROJECT_REVIEW.md
-my_review.md
+
