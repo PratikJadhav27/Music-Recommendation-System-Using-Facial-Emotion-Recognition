@@ -55,54 +55,55 @@ if image:
             # Display all confidence scores as a bar chart
             st.bar_chart(confidence_scores)
 
-            # Fetch and Display Spotify Playlists
-            st.subheader("🎵 Recommended Playlists for You:")
-            with st.spinner("🔄 Fetching playlists..."):
+            # Fetch and Display Song Recommendations
+            st.subheader("🎵 Recommended Songs for You:")
+            with st.spinner("🔄 Fetching songs..."):
                 playlists = get_playlist_for_emotion(emotion, confidence_scores)
-            
-            
+
             if playlists:
-                for idx, playlist in enumerate(playlists):
+                for idx, track in enumerate(playlists):
                     col1, col2, col3 = st.columns([1, 5, 1])
-                    
+
                     with col1:
-                        if playlist["image"]:
-                            st.image(playlist["image"], width=100)
-                    
+                        if track["image"]:
+                            st.image(track["image"], width=100)
+
                     with col2:
-                        st.markdown(f"**[{playlist['name']}]({playlist['url']})**")
-                    
+                        st.markdown(f"**[{track['name']}]({track['url']})**")
+                        if track.get("preview"):
+                            st.audio(track["preview"], format="audio/mp4")
+
                     with col3:
                         # Feedback buttons
                         feedback_col1, feedback_col2 = st.columns(2)
-                        
+
                         with feedback_col1:
                             if st.button("👍", key=f"like_{idx}"):
                                 from feedback_manager import log_feedback
                                 success = log_feedback(
                                     emotion=emotion,
                                     confidence_scores=confidence_scores,
-                                    playlist_name=playlist["name"],
-                                    playlist_url=playlist["url"],
+                                    playlist_name=track["name"],
+                                    playlist_url=track["url"],
                                     rating=1
                                 )
                                 if success:
                                     st.success("Thanks for the feedback!", icon="✅")
-                        
+
                         with feedback_col2:
                             if st.button("👎", key=f"dislike_{idx}"):
                                 from feedback_manager import log_feedback
                                 success = log_feedback(
                                     emotion=emotion,
                                     confidence_scores=confidence_scores,
-                                    playlist_name=playlist["name"],
-                                    playlist_url=playlist["url"],
+                                    playlist_name=track["name"],
+                                    playlist_url=track["url"],
                                     rating=-1
                                 )
                                 if success:
                                     st.info("Feedback noted!", icon="ℹ️")
             else:
-                st.warning("⚠️ No playlists found. Please check your Spotify API credentials in the .env file.")
+                st.warning("⚠️ No songs found. Please check your internet connection and try again.")
     
     except FileNotFoundError as e:
         st.error(f"❌ Error: Model file not found. Please ensure fer_model.h5 is in the Model directory.")
