@@ -2,6 +2,7 @@
 
 > An intelligent music recommendation system that analyzes facial expressions to suggest personalized Spotify playlists. Built with deep learning, probabilistic modeling, and a continuous feedback loop.
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://pratikjadhav27-music-recommendation-system-using-fac-app-bfderb.streamlit.app)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
 [![TensorFlow](https://img.shields.io/badge/TensorFlow-2.x-orange)](https://www.tensorflow.org/)
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28-red)](https://streamlit.io/)
