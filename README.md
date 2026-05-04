@@ -1,6 +1,6 @@
 # 🎵 Music Recommendation System using Facial Emotion Recognition
 
-> An intelligent music recommendation system that analyzes facial expressions to suggest personalized Spotify playlists. Built with deep learning, probabilistic modeling, and a continuous feedback loop.
+> An intelligent music recommendation system that analyzes facial expressions to suggest personalized song recommendations. Built with deep learning, probabilistic modeling, and a continuous feedback loop.
 
 [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://pratikjadhav27-music-recommendation-system-using-fac-app-bfderb.streamlit.app)
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
@@ -45,15 +45,16 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
   - Balanced CNN with Weighted Loss (66.52% accuracy, +20% Disgust recall)
 - **Real-time Webcam & Image Upload Support**
 
-### 🎶 **Intelligent Playlist Recommendations**
-- **Probabilistic Mapping**: Mixes playlists based on emotion distribution (e.g., 70% Happy + 30% Sad)
-- **Spotify Integration**: Fetches real playlists via Spotify API
-- **Genre Diversity**: 4+ genres per emotion for variety
+### 🎶 **Intelligent Song Recommendations**
+- **Probabilistic Mapping**: Blends songs based on emotion distribution (e.g., 70% Happy + 30% Sad)
+- **iTunes API Integration**: Fetches real songs with album art — no account or API key required
+- **30-second Audio Previews**: Listen to song snippets directly inside the app
+- **Genre Diversity**: 5+ mood-based search terms per emotion for variety
 
 ### 📊 **User Feedback System**
-- **Like/Dislike Buttons**: Collect user preferences
+- **Like/Dislike Buttons**: Collect user preferences per song
 - **Data Logging**: Stores feedback in `data/feedback.csv` for future model improvements
-- **Continuous Learning**: Foundation for personalized recommendation engine
+- **Continuous Learning**: Foundation for a personalized recommendation engine
 
 ---
 
@@ -90,20 +91,20 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
         │ {happy: 0.70, sad: 0.25, ...}
         │
 ┌───────▼─────────────────────────────────────────┐
-│    PROBABILISTIC PLAYLIST RECOMMENDATION        │
+│    PROBABILISTIC SONG RECOMMENDATION            │
 │  ┌──────────────────────────────────────────┐  │
 │  │ 1. Identify Dominant Emotion (70%)      │  │
 │  │ 2. Identify Secondary Emotion (25%)     │  │
-│  │ 3. Fetch 3 playlists (Dominant genre)   │  │
-│  │ 4. Fetch 2 playlists (Secondary genre)  │  │
-│  │ 5. Shuffle & Display                    │  │
+│  │ 3. Fetch 3 songs  (Dominant  genre)    │  │
+│  │ 4. Fetch 2 songs  (Secondary genre)    │  │
+│  │ 5. Shuffle & Display with Preview      │  │
 │  └──────────────────────────────────────────┘  │
 └───────┬─────────────────────────────────────────┘
         │
         ▼
 ┌────────────────────────────────────────────────┐
-│          SPOTIFY API INTEGRATION               │
-│  (Search playlists by genre, return metadata) │
+│         iTunes Search API Integration          │
+│  (Free · No key required · Album art + audio) │
 └────────────────────────────────────────────────┘
 ```
 
@@ -147,7 +148,8 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 ### Prerequisites
 - Python 3.8+
 - pip
-- Spotify Developer Account ([Get one here](https://developer.spotify.com))
+
+> **No API keys or external accounts required.** Song recommendations use the iTunes Search API which is completely free and open.
 
 ### Setup
 
@@ -160,7 +162,7 @@ cd Music-Recommendation-System-Using-Facial-Emotion-Recognition
 2. **Create a virtual environment** (recommended)
 ```bash
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\\Scripts\\activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 ```
 
 3. **Install dependencies**
@@ -168,18 +170,8 @@ source venv/bin/activate  # On Windows: venv\\Scripts\\activate
 pip install -r requirements.txt
 ```
 
-4. **Set up Spotify API credentials**
-   - Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard)
-   - Create a new app
-   - Copy your **Client ID** and **Client Secret**
-   - Create a `.env` file in the project root:
-   ```env
-   SPOTIFY_CLIENT_ID=your_client_id_here
-   SPOTIFY_CLIENT_SECRET=your_client_secret_here
-   ```
-
-5. **Download the pre-trained model** (if not included)
-   - The `Model/fer_model.h5` file should be present
+4. **Ensure the pre-trained model is present**
+   - The `Model/fer_model.h5` file should be present in the repo
    - If missing, see [Training Your Own Models](#training-your-own-models)
 
 ---
@@ -197,7 +189,7 @@ The app will open at `http://localhost:8501`
 1. **Choose Input Method**: Upload an image or use your webcam
 2. **Capture/Upload**: Take a photo or select an image file
 3. **View Results**: See your detected emotion with confidence scores
-4. **Explore Playlists**: Browse recommended Spotify playlists
+4. **Explore Songs**: Browse recommended songs with album art and 30-second audio previews
 5. **Provide Feedback**: Click 👍 or 👎 to help improve recommendations
 
 ---
@@ -268,15 +260,13 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 │   ├── fer_mobilenet.h5           # MobileNetV2 model
 │   ├── training_history.png       # Training curves
 │   └── confusion_matrix.png       # Evaluation results
-├── data/                          # User feedback logs
+├── data/                          # User feedback logs (gitignored)
 │   └── feedback.csv               # Like/Dislike data
 ├── emotion_detector.py            # Emotion prediction logic
-├── spotify_auth.py                # Spotify API authentication
-├── spotify_recommendation.py      # Probabilistic playlist logic
+├── spotify_recommendation.py      # Probabilistic song recommendation (iTunes API)
 ├── feedback_manager.py            # Feedback logging system
-├── app.py               # Main web application
+├── app.py                         # Main Streamlit web application
 ├── requirements.txt               # Python dependencies
-├── .env                           # API credentials (not in repo)
 └── TRAINING_ANALYSIS.md           # Detailed model analysis
 ```
 
@@ -301,7 +291,7 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 - **Benefit**: Captures nuanced emotional states (e.g., "70% Happy, 30% Nostalgic")
 
 ### 4. **Feedback Loop**
-- **Data Collection**: User ratings (Like/Dislike) logged to CSV
+- **Data Collection**: User ratings (Like/Dislike) logged to CSV per song
 - **Future Use**: Train a personalization model (Phase 5)
 - **ML Maturity**: Demonstrates understanding of data-centric AI
 
@@ -320,9 +310,7 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 - [ ] **Personalization Model**: Use feedback data to train a preference predictor
 - [ ] **Multi-modal Input**: Combine facial expressions with voice tone
 - [ ] **Explainability**: Add Grad-CAM visualizations to show which facial regions influenced the prediction
-- [ ] **Deployment**: Dockerize the application for easy deployment
-
----
+- [x] **Deployment**: Live app deployed on [Streamlit Community Cloud](https://pratikjadhav27-music-recommendation-system-using-fac-app-bfderb.streamlit.app)
 
 ---
 
@@ -335,7 +323,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgements
 
 - **FER-2013 Dataset**: [Kaggle](https://www.kaggle.com/datasets/msambare/fer2013)
-- **Spotify API**: [Spotify for Developers](https://developer.spotify.com/)
+- **iTunes Search API**: [Apple Developer](https://developer.apple.com/library/archive/documentation/AudioVideo/Conceptual/iTuneSearchAPI/)
 - **TensorFlow/Keras**: Deep learning framework
 - **Streamlit**: Rapid web app development
 

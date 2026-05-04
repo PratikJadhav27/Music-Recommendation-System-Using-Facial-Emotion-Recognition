@@ -5,4 +5,5 @@ __pycache__/
 dataset/
 data/
 .cache
+spotify_auth.py
 

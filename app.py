@@ -83,8 +83,8 @@ if image:
                                 success = log_feedback(
                                     emotion=emotion,
                                     confidence_scores=confidence_scores,
-                                    playlist_name=track["name"],
-                                    playlist_url=track["url"],
+                                    song_name=track["name"],
+                                    song_url=track["url"],
                                     rating=1
                                 )
                                 if success:
@@ -96,8 +96,8 @@ if image:
                                 success = log_feedback(
                                     emotion=emotion,
                                     confidence_scores=confidence_scores,
-                                    playlist_name=track["name"],
-                                    playlist_url=track["url"],
+                                    song_name=track["name"],
+                                    song_url=track["url"],
                                     rating=-1
                                 )
                                 if success:
