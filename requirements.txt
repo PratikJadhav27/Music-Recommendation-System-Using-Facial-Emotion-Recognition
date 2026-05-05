@@ -1,6 +1,9 @@
 streamlit==1.53.1
+streamlit-webrtc>=0.47.0
 tensorflow==2.20.0
 Pillow==12.1.0
+opencv-python-headless>=4.8.0
+requests>=2.31.0
 matplotlib==3.9.0
 scikit-learn==1.5.0
 seaborn==0.13.2

@@ -186,11 +186,13 @@ streamlit run app.py
 The app will open at `http://localhost:8501`
 
 ### Using the App
-1. **Choose Input Method**: Upload an image or use your webcam
-2. **Capture/Upload**: Take a photo or select an image file
-3. **View Results**: See your detected emotion with confidence scores
-4. **Explore Songs**: Browse recommended songs with album art and 30-second audio previews
+1. **Choose Input Method**: Upload an image, take a single webcam snapshot, or use **Live Webcam (real-time)** for continuous video with an on-screen emotion overlay
+2. **Capture/Upload**: Take a photo or select an image file (or click **START** in live mode and allow camera access)
+3. **View Results**: See your detected emotion with confidence scores (updated live while streaming)
+4. **Explore Songs**: Browse recommended songs with album art and 30-second audio previews (after upload/snapshot, or after you stop the live stream — songs use the last detected emotion)
 5. **Provide Feedback**: Click 👍 or 👎 to help improve recommendations
+
+**Live webcam note:** Real-time mode uses [streamlit-webrtc](https://github.com/whitphx/streamlit-webrtc). On some corporate or strict networks, WebRTC may need a TURN server (see the library docs). [Streamlit Community Cloud](https://streamlit.io/cloud) serves over HTTPS, which is required for camera access on the public internet.
 
 ---
 
@@ -263,6 +265,7 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 ├── data/                          # User feedback logs (gitignored)
 │   └── feedback.csv               # Like/Dislike data
 ├── emotion_detector.py            # Emotion prediction logic
+├── realtime_webcam.py             # Live WebRTC video + on-frame emotion overlay
 ├── spotify_recommendation.py      # Probabilistic song recommendation (iTunes API)
 ├── feedback_manager.py            # Feedback logging system
 ├── app.py                         # Main Streamlit web application
