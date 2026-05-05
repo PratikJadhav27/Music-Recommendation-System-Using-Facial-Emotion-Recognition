@@ -1,112 +1,166 @@
-import streamlit as st
+import os
+import time
 
 import numpy as np
+import streamlit as st
 from PIL import Image
+
 from emotion_detector import predict_emotion
 from spotify_recommendation import get_playlist_for_emotion
-import os
 
-# Streamlit UI
+st.set_page_config(page_title="Music & Emotion", layout="wide")
+
 st.title("🎵 Music Recommendation System using Facial Emotion Recognition")
 
-# Sidebar
-st.sidebar.header("Upload or Capture Your Image")
-option = st.sidebar.radio("Choose an option:", ("Upload an Image", "Capture via Webcam"))
+st.sidebar.header("Input")
+option = st.sidebar.radio(
+    "Choose an option:",
+    ("Upload an Image", "Capture via Webcam", "Live Webcam (real-time)"),
+)
 
-# Note: Webcam capture in Streamlit requires a different approach
-# Using st.camera_input instead of cv2 (which doesn't work in browser)
+
 def capture_webcam():
-    """Captures image from webcam using Streamlit's built-in camera input."""
-    # Ensure images directory exists
+    """Single snapshot from the browser camera (Streamlit)."""
     os.makedirs("images", exist_ok=True)
-    
     picture = st.camera_input("Take a picture")
     if picture is not None:
         img = Image.open(picture)
-        img_path = "images/captured_image.jpg"
-        img.save(img_path)
+        img.save("images/captured_image.jpg")
         return img
     return None
 
-# Handling Image Upload or Webcam Capture
+
+def render_song_recommendations(emotion: str, confidence: float, confidence_scores: dict):
+    st.subheader(f"🎭 Detected Emotion: **{emotion.capitalize()}** ({confidence:.2f}% confidence)")
+    st.bar_chart(confidence_scores)
+
+    st.subheader("🎵 Recommended Songs for You:")
+    with st.spinner("🔄 Fetching songs..."):
+        tracks = get_playlist_for_emotion(emotion, confidence_scores)
+
+    if not tracks:
+        st.warning("⚠️ No songs found. Please check your internet connection and try again.")
+        return
+
+    for idx, track in enumerate(tracks):
+        col1, col2, col3 = st.columns([1, 5, 1])
+        with col1:
+            if track["image"]:
+                st.image(track["image"], width=100)
+        with col2:
+            st.markdown(f"**[{track['name']}]({track['url']})**")
+            if track.get("preview"):
+                st.audio(track["preview"], format="audio/mp4")
+        with col3:
+            fc1, fc2 = st.columns(2)
+            with fc1:
+                if st.button("👍", key=f"like_{idx}_{emotion}"):
+                    from feedback_manager import log_feedback
+
+                    if log_feedback(
+                        emotion=emotion,
+                        confidence_scores=confidence_scores,
+                        song_name=track["name"],
+                        song_url=track["url"],
+                        rating=1,
+                    ):
+                        st.success("Thanks for the feedback!", icon="✅")
+            with fc2:
+                if st.button("👎", key=f"dislike_{idx}_{emotion}"):
+                    from feedback_manager import log_feedback
+
+                    if log_feedback(
+                        emotion=emotion,
+                        confidence_scores=confidence_scores,
+                        song_name=track["name"],
+                        song_url=track["url"],
+                        rating=-1,
+                    ):
+                        st.info("Feedback noted!", icon="ℹ️")
+
+
+# --- Upload / snapshot webcam ---
 image = None
 if option == "Upload an Image":
-    uploaded_file = st.sidebar.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
-    if uploaded_file:
-        image = Image.open(uploaded_file)
+    uploaded = st.sidebar.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
+    if uploaded:
+        image = Image.open(uploaded)
 elif option == "Capture via Webcam":
     image = capture_webcam()
 
-# Display Image and Predict Emotion
-if image:
-    st.image(image, caption="Uploaded Image", use_column_width=True)
-    
+if image is not None:
+    st.image(image, caption="Your image", use_container_width=True)
     try:
         with st.spinner("🔄 Analyzing emotion..."):
-            # Convert image to OpenCV format
-            img_array = np.array(image.convert("L").resize((48, 48))) / 255.0
-            img_array = np.expand_dims(img_array, axis=[0, -1])  # Reshape for model
-            
-            # Predict emotion and confidence scores
-            emotion, confidence, confidence_scores = predict_emotion(img_array)
-
-            st.subheader(f"🎭 Detected Emotion: **{emotion.capitalize()}** ({confidence:.2f}% confidence)")
-
-            # Display all confidence scores as a bar chart
-            st.bar_chart(confidence_scores)
-
-            # Fetch and Display Song Recommendations
-            st.subheader("🎵 Recommended Songs for You:")
-            with st.spinner("🔄 Fetching songs..."):
-                playlists = get_playlist_for_emotion(emotion, confidence_scores)
-
-            if playlists:
-                for idx, track in enumerate(playlists):
-                    col1, col2, col3 = st.columns([1, 5, 1])
-
-                    with col1:
-                        if track["image"]:
-                            st.image(track["image"], width=100)
-
-                    with col2:
-                        st.markdown(f"**[{track['name']}]({track['url']})**")
-                        if track.get("preview"):
-                            st.audio(track["preview"], format="audio/mp4")
-
-                    with col3:
-                        # Feedback buttons
-                        feedback_col1, feedback_col2 = st.columns(2)
-
-                        with feedback_col1:
-                            if st.button("👍", key=f"like_{idx}"):
-                                from feedback_manager import log_feedback
-                                success = log_feedback(
-                                    emotion=emotion,
-                                    confidence_scores=confidence_scores,
-                                    song_name=track["name"],
-                                    song_url=track["url"],
-                                    rating=1
-                                )
-                                if success:
-                                    st.success("Thanks for the feedback!", icon="✅")
-
-                        with feedback_col2:
-                            if st.button("👎", key=f"dislike_{idx}"):
-                                from feedback_manager import log_feedback
-                                success = log_feedback(
-                                    emotion=emotion,
-                                    confidence_scores=confidence_scores,
-                                    song_name=track["name"],
-                                    song_url=track["url"],
-                                    rating=-1
-                                )
-                                if success:
-                                    st.info("Feedback noted!", icon="ℹ️")
-            else:
-                st.warning("⚠️ No songs found. Please check your internet connection and try again.")
-    
-    except FileNotFoundError as e:
-        st.error(f"❌ Error: Model file not found. Please ensure fer_model.h5 is in the Model directory.")
+            gray = np.array(image.convert("L").resize((48, 48)), dtype=np.float32) / 255.0
+            batch = np.expand_dims(gray, axis=(0, -1))
+            emotion, confidence, confidence_scores = predict_emotion(batch)
+        render_song_recommendations(emotion, confidence, confidence_scores)
+    except FileNotFoundError:
+        st.error("❌ Model file not found. Ensure `Model/fer_model.h5` exists.")
     except Exception as e:
-        st.error(f"❌ Error during processing: {str(e)}")
+        st.error(f"❌ Error during processing: {e}")
 
+# --- Live WebRTC ---
+elif option == "Live Webcam (real-time)":
+    from streamlit_webrtc import webrtc_streamer
+
+    from realtime_webcam import (
+        RTC_CONFIGURATION,
+        live_state,
+        make_video_frame_callback,
+        reset_live_state,
+    )
+
+    st.markdown(
+        "Live mode streams your webcam and overlays the predicted emotion on each frame. "
+        "**Allow camera access** when the browser asks. "
+        "On Streamlit Cloud, HTTPS is already enabled; on your PC, `http://localhost` is enough for camera access."
+    )
+    if st.sidebar.button("Reset live session"):
+        reset_live_state()
+        st.rerun()
+
+    ctx = webrtc_streamer(
+        key="emotion-live",
+        video_frame_callback=make_video_frame_callback(),
+        rtc_configuration=RTC_CONFIGURATION,
+        media_stream_constraints={"video": True, "audio": False},
+    )
+
+    status = st.empty()
+    chart_slot = st.empty()
+
+    if ctx.state.playing:
+        while ctx.state.playing:
+            with live_state.lock:
+                em = live_state.emotion
+                conf = live_state.confidence
+                scores = dict(live_state.scores)
+                err = live_state.error
+            if err:
+                status.error(f"Live inference error: {err}")
+            elif em:
+                status.markdown(f"**Live readout:** {em.capitalize()} — **{conf:.1f}%**")
+                if scores:
+                    chart_slot.bar_chart(scores)
+            time.sleep(0.2)
+
+        with live_state.lock:
+            if live_state.emotion:
+                st.session_state["live_emotion"] = live_state.emotion
+                st.session_state["live_confidence"] = live_state.confidence
+                st.session_state["live_scores"] = dict(live_state.scores)
+
+    if not ctx.state.playing and st.session_state.get("live_emotion"):
+        st.divider()
+        st.subheader("Songs for your last live reading")
+        render_song_recommendations(
+            st.session_state["live_emotion"],
+            float(st.session_state.get("live_confidence", 0)),
+            st.session_state.get("live_scores") or {},
+        )
+        if st.button("Clear live results"):
+            for k in ("live_emotion", "live_confidence", "live_scores"):
+                st.session_state.pop(k, None)
+            st.rerun()
