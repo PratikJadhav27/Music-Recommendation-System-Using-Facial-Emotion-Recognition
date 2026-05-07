@@ -78,6 +78,25 @@ def render_song_recommendations(emotion: str, confidence: float, confidence_scor
                     ):
                         st.info("Feedback noted!", icon="ℹ️")
 
+def render_gradcam(image: Image.Image, model_input: np.ndarray, class_index: int | None = None):
+    st.subheader("🔍 Explainability (Grad-CAM)")
+    show = st.checkbox("Show Grad-CAM heatmap", value=False)
+    if not show:
+        return
+
+    alpha = st.slider("Heatmap intensity", min_value=0.0, max_value=0.9, value=0.45, step=0.05)
+    with st.spinner("Generating Grad-CAM heatmap..."):
+        from gradcam import compute_gradcam_heatmap, overlay_heatmap_on_image
+
+        heatmap = compute_gradcam_heatmap(model_input, class_index=class_index)
+        overlay = overlay_heatmap_on_image(image, heatmap, alpha=alpha)
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.image(image, caption="Original", use_container_width=True)
+    with c2:
+        st.image(overlay, caption="Grad-CAM overlay", use_container_width=True)
+
 
 # --- Upload / snapshot webcam ---
 image = None
@@ -89,13 +108,16 @@ elif option == "Capture via Webcam":
     image = capture_webcam()
 
 if image is not None:
-    st.image(image, caption="Your image", use_container_width=True)
     try:
         with st.spinner("🔄 Analyzing emotion..."):
             gray = np.array(image.convert("L").resize((48, 48)), dtype=np.float32) / 255.0
             batch = np.expand_dims(gray, axis=(0, -1))
             emotion, confidence, confidence_scores = predict_emotion(batch)
         render_song_recommendations(emotion, confidence, confidence_scores)
+        # class index for Grad-CAM
+        labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
+        class_index = labels.index(emotion) if emotion in labels else None
+        render_gradcam(image, batch, class_index=class_index)
     except FileNotFoundError:
         st.error("❌ Model file not found. Ensure `Model/fer_model.h5` exists.")
     except Exception as e:

@@ -51,6 +51,10 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 - **30-second Audio Previews**: Listen to song snippets directly inside the app
 - **Genre Diversity**: 5+ mood-based search terms per emotion for variety
 
+### 🔍 **Explainability (Grad-CAM)**
+- **Grad-CAM Heatmap Overlay**: Visualize which facial regions influenced the model’s prediction
+- **On-demand Toggle**: Generate the heatmap only when needed to keep the app fast
+
 ### 📊 **User Feedback System**
 - **Like/Dislike Buttons**: Collect user preferences per song
 - **Data Logging**: Stores feedback in `data/feedback.csv` for future model improvements
