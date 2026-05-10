@@ -17,6 +17,12 @@ option = st.sidebar.radio(
     "Choose an option:",
     ("Upload an Image", "Capture via Webcam", "Live Webcam (real-time)"),
 )
+use_face_detection = st.sidebar.checkbox(
+    "Detect & crop face (recommended)",
+    value=True,
+    help="Uses OpenCV Haar cascades to find the largest face before resizing to 48×48. "
+    "Uncheck to always resize the whole image (legacy, less accurate).",
+)
 
 
 def capture_webcam():
@@ -109,15 +115,28 @@ elif option == "Capture via Webcam":
 
 if image is not None:
     try:
+        from face_preprocess import pil_to_model_input_from_face
+
+        with st.spinner("🔄 Detecting face & analyzing emotion..."):
+            batch, display_img, gradcam_base, face_err = pil_to_model_input_from_face(
+                image,
+                require_face=use_face_detection,
+            )
+        if batch is None:
+            st.warning(face_err or "Could not prepare image.")
+            st.caption("Tip: uncheck **Detect & crop face** in the sidebar to run on the full image.")
+            st.stop()
+
+        st.image(display_img, caption="Image used for prediction (green box = face region)", use_container_width=True)
+
         with st.spinner("🔄 Analyzing emotion..."):
-            gray = np.array(image.convert("L").resize((48, 48)), dtype=np.float32) / 255.0
-            batch = np.expand_dims(gray, axis=(0, -1))
             emotion, confidence, confidence_scores = predict_emotion(batch)
         render_song_recommendations(emotion, confidence, confidence_scores)
-        # class index for Grad-CAM
+        # class index for Grad-CAM — use face-aligned preview when available
         labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
         class_index = labels.index(emotion) if emotion in labels else None
-        render_gradcam(image, batch, class_index=class_index)
+        gcam_img = gradcam_base if gradcam_base is not None else image
+        render_gradcam(gcam_img, batch, class_index=class_index)
     except FileNotFoundError:
         st.error("❌ Model file not found. Ensure `Model/fer_model.h5` exists.")
     except Exception as e:

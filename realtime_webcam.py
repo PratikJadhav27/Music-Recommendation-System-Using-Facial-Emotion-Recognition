@@ -16,6 +16,7 @@ import numpy as np
 from PIL import Image
 
 from emotion_detector import predict_emotion
+from face_preprocess import bgr_frame_to_model_input_from_face
 
 # STUN helps WebRTC on remote hosts (e.g. Streamlit Community Cloud).
 RTC_CONFIGURATION = {
@@ -41,10 +42,8 @@ _predict_lock = threading.Lock()
 
 
 def _bgr_to_model_input(img_bgr: np.ndarray) -> np.ndarray:
-    rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    pil = Image.fromarray(rgb).convert("L").resize((48, 48))
-    x = np.asarray(pil, dtype=np.float32) / 255.0
-    return np.expand_dims(x, axis=(0, -1))
+    """Prefer face crop; fall back to full-frame resize if no face (keeps stream smooth)."""
+    return bgr_frame_to_model_input_from_face(img_bgr, require_face=False)
 
 
 def make_video_frame_callback():

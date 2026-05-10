@@ -44,6 +44,7 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
   - MobileNetV2 Transfer Learning (65% accuracy, 3x smaller)
   - Balanced CNN with Weighted Loss (66.52% accuracy, +20% Disgust recall)
 - **Real-time Webcam & Image Upload Support**
+- **Face Detection & Crop**: OpenCV Haar cascades find the largest face before 48×48 grayscale resize (toggle off for whole-image mode). Live webcam prefers a face crop and falls back to the full frame if none is found.
 
 ### 🎶 **Intelligent Song Recommendations**
 - **Probabilistic Mapping**: Blends songs based on emotion distribution (e.g., 70% Happy + 30% Sad)
@@ -269,6 +270,7 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 ├── data/                          # User feedback logs (gitignored)
 │   └── feedback.csv               # Like/Dislike data
 ├── emotion_detector.py            # Emotion prediction logic
+├── face_preprocess.py             # Haar face detect → FER 48×48 input
 ├── realtime_webcam.py             # Live WebRTC video + on-frame emotion overlay
 ├── spotify_recommendation.py      # Probabilistic song recommendation (iTunes API)
 ├── feedback_manager.py            # Feedback logging system
