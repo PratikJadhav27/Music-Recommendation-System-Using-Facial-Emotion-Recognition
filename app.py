@@ -8,6 +8,9 @@ from PIL import Image
 from emotion_detector import predict_emotion
 from spotify_recommendation import get_playlist_for_emotion
 
+# Top-class confidence below this (%) is treated as unreliable for song recommendations.
+DEFAULT_CONFIDENCE_THRESHOLD = 40.0
+
 st.set_page_config(page_title="Music & Emotion", layout="wide")
 
 st.title("🎵 Music Recommendation System using Facial Emotion Recognition")
@@ -23,6 +26,14 @@ use_face_detection = st.sidebar.checkbox(
     help="Uses OpenCV Haar cascades to find the largest face before resizing to 48×48. "
     "Uncheck to always resize the whole image (legacy, less accurate).",
 )
+min_confidence_pct = st.sidebar.slider(
+    "Low-confidence cutoff (%)",
+    min_value=15.0,
+    max_value=75.0,
+    value=DEFAULT_CONFIDENCE_THRESHOLD,
+    step=1.0,
+    help="If the top emotion score is below this, song recommendations are hidden unless you opt in.",
+)
 
 
 def capture_webcam():
@@ -36,10 +47,12 @@ def capture_webcam():
     return None
 
 
-def render_song_recommendations(emotion: str, confidence: float, confidence_scores: dict):
+def render_emotion_readout(emotion: str, confidence: float, confidence_scores: dict):
     st.subheader(f"🎭 Detected Emotion: **{emotion.capitalize()}** ({confidence:.2f}% confidence)")
     st.bar_chart(confidence_scores)
 
+
+def render_song_recommendations(emotion: str, confidence_scores: dict, key_prefix: str = "main"):
     st.subheader("🎵 Recommended Songs for You:")
     with st.spinner("🔄 Fetching songs..."):
         tracks = get_playlist_for_emotion(emotion, confidence_scores)
@@ -60,7 +73,7 @@ def render_song_recommendations(emotion: str, confidence: float, confidence_scor
         with col3:
             fc1, fc2 = st.columns(2)
             with fc1:
-                if st.button("👍", key=f"like_{idx}_{emotion}"):
+                if st.button("👍", key=f"{key_prefix}_like_{idx}_{emotion}"):
                     from feedback_manager import log_feedback
 
                     if log_feedback(
@@ -72,7 +85,7 @@ def render_song_recommendations(emotion: str, confidence: float, confidence_scor
                     ):
                         st.success("Thanks for the feedback!", icon="✅")
             with fc2:
-                if st.button("👎", key=f"dislike_{idx}_{emotion}"):
+                if st.button("👎", key=f"{key_prefix}_dislike_{idx}_{emotion}"):
                     from feedback_manager import log_feedback
 
                     if log_feedback(
@@ -83,6 +96,26 @@ def render_song_recommendations(emotion: str, confidence: float, confidence_scor
                         rating=-1,
                     ):
                         st.info("Feedback noted!", icon="ℹ️")
+
+
+def maybe_render_songs_after_emotion(
+    emotion: str,
+    confidence: float,
+    confidence_scores: dict,
+    key_prefix: str,
+    threshold: float,
+):
+    """Show songs unless confidence is below threshold (then require opt-in)."""
+    render_emotion_readout(emotion, confidence, confidence_scores)
+    if confidence < threshold:
+        st.warning(
+            f"**Low confidence** ({confidence:.1f}% is below {threshold:.0f}%). "
+            "The prediction may not match how you feel — try a clearer, front-facing photo or better lighting."
+        )
+        if st.checkbox("Show song recommendations anyway", key=f"{key_prefix}_override_low_conf"):
+            render_song_recommendations(emotion, confidence_scores, key_prefix=key_prefix)
+    else:
+        render_song_recommendations(emotion, confidence_scores, key_prefix=key_prefix)
 
 def render_gradcam(image: Image.Image, model_input: np.ndarray, class_index: int | None = None):
     st.subheader("🔍 Explainability (Grad-CAM)")
@@ -131,7 +164,13 @@ if image is not None:
 
         with st.spinner("🔄 Analyzing emotion..."):
             emotion, confidence, confidence_scores = predict_emotion(batch)
-        render_song_recommendations(emotion, confidence, confidence_scores)
+        maybe_render_songs_after_emotion(
+            emotion,
+            confidence,
+            confidence_scores,
+            key_prefix="upload",
+            threshold=min_confidence_pct,
+        )
         # class index for Grad-CAM — use face-aligned preview when available
         labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
         class_index = labels.index(emotion) if emotion in labels else None
@@ -196,10 +235,12 @@ elif option == "Live Webcam (real-time)":
     if not ctx.state.playing and st.session_state.get("live_emotion"):
         st.divider()
         st.subheader("Songs for your last live reading")
-        render_song_recommendations(
+        maybe_render_songs_after_emotion(
             st.session_state["live_emotion"],
             float(st.session_state.get("live_confidence", 0)),
             st.session_state.get("live_scores") or {},
+            key_prefix="live",
+            threshold=min_confidence_pct,
         )
         if st.button("Clear live results"):
             for k in ("live_emotion", "live_confidence", "live_scores"):
