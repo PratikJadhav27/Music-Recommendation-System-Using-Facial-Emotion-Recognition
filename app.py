@@ -1,3 +1,4 @@
+import hashlib
 import os
 import time
 
@@ -52,8 +53,19 @@ def render_emotion_readout(emotion: str, confidence: float, confidence_scores: d
     st.bar_chart(confidence_scores)
 
 
+def _song_refresh_version(key_prefix: str) -> int:
+    return int(st.session_state.get(f"{key_prefix}_song_refresh", 0))
+
+
 def render_song_recommendations(emotion: str, confidence_scores: dict, key_prefix: str = "main"):
     st.subheader("🎵 Recommended Songs for You:")
+    rv = _song_refresh_version(key_prefix)
+    c_refresh, _ = st.columns([1, 4])
+    with c_refresh:
+        if st.button("🔄 New songs", key=f"{key_prefix}_new_songs_{rv}", help="Fetch a different set of songs for the same emotion (iTunes search is randomized)."):
+            st.session_state[f"{key_prefix}_song_refresh"] = rv + 1
+            st.rerun()
+
     with st.spinner("🔄 Fetching songs..."):
         tracks = get_playlist_for_emotion(emotion, confidence_scores)
 
@@ -61,6 +73,7 @@ def render_song_recommendations(emotion: str, confidence_scores: dict, key_prefi
         st.warning("⚠️ No songs found. Please check your internet connection and try again.")
         return
 
+    rv = _song_refresh_version(key_prefix)
     for idx, track in enumerate(tracks):
         col1, col2, col3 = st.columns([1, 5, 1])
         with col1:
@@ -73,7 +86,7 @@ def render_song_recommendations(emotion: str, confidence_scores: dict, key_prefi
         with col3:
             fc1, fc2 = st.columns(2)
             with fc1:
-                if st.button("👍", key=f"{key_prefix}_like_{idx}_{emotion}"):
+                if st.button("👍", key=f"{key_prefix}_like_{idx}_{emotion}_{rv}"):
                     from feedback_manager import log_feedback
 
                     if log_feedback(
@@ -85,7 +98,7 @@ def render_song_recommendations(emotion: str, confidence_scores: dict, key_prefi
                     ):
                         st.success("Thanks for the feedback!", icon="✅")
             with fc2:
-                if st.button("👎", key=f"{key_prefix}_dislike_{idx}_{emotion}"):
+                if st.button("👎", key=f"{key_prefix}_dislike_{idx}_{emotion}_{rv}"):
                     from feedback_manager import log_feedback
 
                     if log_feedback(
@@ -137,6 +150,10 @@ def render_gradcam(image: Image.Image, model_input: np.ndarray, class_index: int
         st.image(overlay, caption="Grad-CAM overlay", use_container_width=True)
 
 
+def pil_rgb_fingerprint(img: Image.Image) -> str:
+    return hashlib.sha256(np.asarray(img.convert("RGB"), dtype=np.uint8).tobytes()).hexdigest()
+
+
 # --- Upload / snapshot webcam ---
 image = None
 if option == "Upload an Image":
@@ -150,20 +167,43 @@ if image is not None:
     try:
         from face_preprocess import pil_to_model_input_from_face
 
-        with st.spinner("🔄 Detecting face & analyzing emotion..."):
-            batch, display_img, gradcam_base, face_err = pil_to_model_input_from_face(
-                image,
-                require_face=use_face_detection,
-            )
-        if batch is None:
-            st.warning(face_err or "Could not prepare image.")
-            st.caption("Tip: uncheck **Detect & crop face** in the sidebar to run on the full image.")
-            st.stop()
+        cache_tag = f"{option}_{use_face_detection}_{pil_rgb_fingerprint(image)}"
+        cached = st.session_state.get("upload_static_cache_tag") == cache_tag
+
+        if not cached:
+            st.session_state["upload_song_refresh"] = 0
+
+        if cached:
+            emotion = st.session_state["upload_static_emotion"]
+            confidence = float(st.session_state["upload_static_confidence"])
+            confidence_scores = dict(st.session_state["upload_static_scores"])
+            batch = st.session_state["upload_static_batch"]
+            display_img = st.session_state["upload_static_display"]
+            gradcam_base = st.session_state.get("upload_static_gradcam")
+        else:
+            with st.spinner("🔄 Detecting face & analyzing emotion..."):
+                batch, display_img, gradcam_base, face_err = pil_to_model_input_from_face(
+                    image,
+                    require_face=use_face_detection,
+                )
+            if batch is None:
+                st.warning(face_err or "Could not prepare image.")
+                st.caption("Tip: uncheck **Detect & crop face** in the sidebar to run on the full image.")
+                st.stop()
+
+            with st.spinner("🔄 Analyzing emotion..."):
+                emotion, confidence, confidence_scores = predict_emotion(batch)
+
+            st.session_state["upload_static_cache_tag"] = cache_tag
+            st.session_state["upload_static_emotion"] = emotion
+            st.session_state["upload_static_confidence"] = confidence
+            st.session_state["upload_static_scores"] = dict(confidence_scores)
+            st.session_state["upload_static_batch"] = np.array(batch, copy=True)
+            st.session_state["upload_static_display"] = display_img
+            st.session_state["upload_static_gradcam"] = gradcam_base
 
         st.image(display_img, caption="Image used for prediction (green box = face region)", use_container_width=True)
 
-        with st.spinner("🔄 Analyzing emotion..."):
-            emotion, confidence, confidence_scores = predict_emotion(batch)
         maybe_render_songs_after_emotion(
             emotion,
             confidence,
@@ -171,7 +211,6 @@ if image is not None:
             key_prefix="upload",
             threshold=min_confidence_pct,
         )
-        # class index for Grad-CAM — use face-aligned preview when available
         labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
         class_index = labels.index(emotion) if emotion in labels else None
         gcam_img = gradcam_base if gradcam_base is not None else image
@@ -228,6 +267,14 @@ elif option == "Live Webcam (real-time)":
 
         with live_state.lock:
             if live_state.emotion:
+                sig = (
+                    live_state.emotion,
+                    round(float(live_state.confidence), 2),
+                    tuple(sorted((k, round(float(v), 2)) for k, v in live_state.scores.items())),
+                )
+                if st.session_state.get("live_reading_sig") != sig:
+                    st.session_state["live_song_refresh"] = 0
+                    st.session_state["live_reading_sig"] = sig
                 st.session_state["live_emotion"] = live_state.emotion
                 st.session_state["live_confidence"] = live_state.confidence
                 st.session_state["live_scores"] = dict(live_state.scores)
@@ -243,6 +290,12 @@ elif option == "Live Webcam (real-time)":
             threshold=min_confidence_pct,
         )
         if st.button("Clear live results"):
-            for k in ("live_emotion", "live_confidence", "live_scores"):
+            for k in (
+                "live_emotion",
+                "live_confidence",
+                "live_scores",
+                "live_reading_sig",
+                "live_song_refresh",
+            ):
                 st.session_state.pop(k, None)
             st.rerun()
