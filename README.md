@@ -52,6 +52,7 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 - **iTunes API Integration**: Fetches real songs with album art — no account or API key required
 - **30-second Audio Previews**: Listen to song snippets directly inside the app
 - **Genre Diversity**: 5+ mood-based search terms per emotion for variety
+- **New songs button**: Refresh iTunes results for the same emotion without re-running the model or re-uploading the image
 
 ### 🔍 **Explainability (Grad-CAM)**
 - **Grad-CAM Heatmap Overlay**: Visualize which facial regions influenced the model’s prediction
