@@ -18,42 +18,37 @@ def get_playlist_for_emotion(emotion, confidence_scores=None):
     Fetch song recommendations from iTunes based on detected emotion and confidence scores.
     Uses the iTunes Search API — no API key or account required.
     """
-    try:
-        genre = random.choice(emotion_genre_map.get(emotion, ["pop"]))
+    genre = random.choice(emotion_genre_map.get(emotion, ["pop"]))
 
-        # Identify secondary emotion (must be >= 20% confidence)
-        secondary_genre = None
-        if confidence_scores:
-            sorted_emotions = sorted(confidence_scores.items(), key=lambda x: x[1], reverse=True)
-            if len(sorted_emotions) > 1 and sorted_emotions[1][1] >= 20.0:
-                secondary_emotion = sorted_emotions[1][0]
-                secondary_genre = random.choice(emotion_genre_map.get(secondary_emotion, ["pop"]))
+    # Identify secondary emotion (must be >= 20% confidence)
+    secondary_genre = None
+    if confidence_scores:
+        sorted_emotions = sorted(confidence_scores.items(), key=lambda x: x[1], reverse=True)
+        if len(sorted_emotions) > 1 and sorted_emotions[1][1] >= 20.0:
+            secondary_emotion = sorted_emotions[1][0]
+            secondary_genre = random.choice(emotion_genre_map.get(secondary_emotion, ["pop"]))
 
-        tracks = []
+    tracks = []
 
-        # 3 tracks for dominant emotion
-        tracks.extend(_search_itunes(genre, limit=3))
+    # 3 tracks for dominant emotion
+    tracks.extend(_search_itunes(genre, limit=3))
 
-        # 2 tracks for secondary emotion (or 2 more dominant if no secondary)
-        if secondary_genre:
-            tracks.extend(_search_itunes(secondary_genre, limit=2))
-        else:
-            tracks.extend(_search_itunes(genre, limit=2))
+    # 2 tracks for secondary emotion (or 2 more dominant if no secondary)
+    if secondary_genre:
+        tracks.extend(_search_itunes(secondary_genre, limit=2))
+    else:
+        tracks.extend(_search_itunes(genre, limit=2))
 
-        # Deduplicate by URL and shuffle
-        seen = set()
-        unique_tracks = []
-        for t in tracks:
-            if t["url"] not in seen:
-                seen.add(t["url"])
-                unique_tracks.append(t)
+    # Deduplicate by URL and shuffle
+    seen = set()
+    unique_tracks = []
+    for t in tracks:
+        if t["url"] not in seen:
+            seen.add(t["url"])
+            unique_tracks.append(t)
 
-        random.shuffle(unique_tracks)
-        return unique_tracks
-
-    except Exception as e:
-        print(f"Error fetching tracks: {e}")
-        return []
+    random.shuffle(unique_tracks)
+    return unique_tracks
 
 
 def _search_itunes(term, limit=5):
@@ -88,4 +83,4 @@ def _search_itunes(term, limit=5):
 
     except Exception as e:
         print(f"iTunes API error: {e}")
-        return []
+        raise
