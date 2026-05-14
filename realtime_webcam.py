@@ -17,6 +17,7 @@ from PIL import Image
 
 from emotion_detector import predict_emotion
 from face_preprocess import bgr_frame_to_model_input_from_face
+from user_errors import humanize_live_inference_error
 
 # STUN helps WebRTC on remote hosts (e.g. Streamlit Community Cloud).
 RTC_CONFIGURATION = {
@@ -67,7 +68,7 @@ def make_video_frame_callback():
                     live_state.error = None
             except Exception as e:
                 with live_state.lock:
-                    live_state.error = str(e)
+                    live_state.error = humanize_live_inference_error(e)
 
         with live_state.lock:
             emotion = live_state.emotion

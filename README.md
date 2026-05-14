@@ -63,7 +63,8 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 - **Data Logging**: Stores feedback in `data/feedback.csv` for future model improvements
 - **Continuous Learning**: Foundation for a personalized recommendation engine
 
----
+### 🛟 **Clearer errors**
+- **Readable messages** for bad image files, model / memory failures, iTunes network issues, and Grad-CAM failures — with an optional **Technical details** expander for debugging
 
 ## 🏗️ Architecture
 
@@ -276,6 +277,7 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 ├── realtime_webcam.py             # Live WebRTC video + on-frame emotion overlay
 ├── spotify_recommendation.py      # Probabilistic song recommendation (iTunes API)
 ├── feedback_manager.py            # Feedback logging system
+├── user_errors.py                 # User-facing error messages for UI
 ├── app.py                         # Main Streamlit web application
 ├── requirements.txt               # Python dependencies
 └── TRAINING_ANALYSIS.md           # Detailed model analysis

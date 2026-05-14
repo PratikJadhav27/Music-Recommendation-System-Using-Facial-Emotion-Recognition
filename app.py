@@ -8,6 +8,7 @@ from PIL import Image
 
 from emotion_detector import predict_emotion
 from spotify_recommendation import get_playlist_for_emotion
+from user_errors import humanize_processing_error, humanize_song_fetch_error
 
 # Top-class confidence below this (%) is treated as unreliable for song recommendations.
 DEFAULT_CONFIDENCE_THRESHOLD = 40.0
@@ -39,12 +40,26 @@ min_confidence_pct = st.sidebar.slider(
 
 def capture_webcam():
     """Single snapshot from the browser camera (Streamlit)."""
+    from PIL import UnidentifiedImageError
+
     os.makedirs("images", exist_ok=True)
     picture = st.camera_input("Take a picture")
     if picture is not None:
-        img = Image.open(picture)
-        img.save("images/captured_image.jpg")
-        return img
+        try:
+            img = Image.open(picture)
+            img.load()
+            img.save("images/captured_image.jpg")
+            return img
+        except UnidentifiedImageError as e:
+            summary, tech = humanize_processing_error(e)
+            st.error(f"❌ {summary}")
+            with st.expander("Technical details"):
+                st.code(tech)
+        except OSError as e:
+            summary, tech = humanize_processing_error(e)
+            st.error(f"❌ {summary}")
+            with st.expander("Technical details"):
+                st.code(tech)
     return None
 
 
@@ -67,7 +82,14 @@ def render_song_recommendations(emotion: str, confidence_scores: dict, key_prefi
             st.rerun()
 
     with st.spinner("🔄 Fetching songs..."):
-        tracks = get_playlist_for_emotion(emotion, confidence_scores)
+        try:
+            tracks = get_playlist_for_emotion(emotion, confidence_scores)
+        except Exception as e:
+            summary, tech = humanize_song_fetch_error(e)
+            st.error(f"❌ {summary}")
+            with st.expander("Technical details"):
+                st.code(tech)
+            return
 
     if not tracks:
         st.warning("⚠️ No songs found. Please check your internet connection and try again.")
@@ -137,17 +159,23 @@ def render_gradcam(image: Image.Image, model_input: np.ndarray, class_index: int
         return
 
     alpha = st.slider("Heatmap intensity", min_value=0.0, max_value=0.9, value=0.45, step=0.05)
-    with st.spinner("Generating Grad-CAM heatmap..."):
-        from gradcam import compute_gradcam_heatmap, overlay_heatmap_on_image
+    try:
+        with st.spinner("Generating Grad-CAM heatmap..."):
+            from gradcam import compute_gradcam_heatmap, overlay_heatmap_on_image
 
-        heatmap = compute_gradcam_heatmap(model_input, class_index=class_index)
-        overlay = overlay_heatmap_on_image(image, heatmap, alpha=alpha)
+            heatmap = compute_gradcam_heatmap(model_input, class_index=class_index)
+            overlay = overlay_heatmap_on_image(image, heatmap, alpha=alpha)
 
-    c1, c2 = st.columns(2)
-    with c1:
-        st.image(image, caption="Original", use_container_width=True)
-    with c2:
-        st.image(overlay, caption="Grad-CAM overlay", use_container_width=True)
+        c1, c2 = st.columns(2)
+        with c1:
+            st.image(image, caption="Original", use_container_width=True)
+        with c2:
+            st.image(overlay, caption="Grad-CAM overlay", use_container_width=True)
+    except Exception as e:
+        summary, tech = humanize_processing_error(e)
+        st.warning(f"Grad-CAM: {summary}")
+        with st.expander("Grad-CAM technical details"):
+            st.code(tech)
 
 
 def pil_rgb_fingerprint(img: Image.Image) -> str:
@@ -159,15 +187,48 @@ image = None
 if option == "Upload an Image":
     uploaded = st.sidebar.file_uploader("Upload an image", type=["jpg", "png", "jpeg"])
     if uploaded:
-        image = Image.open(uploaded)
+        from PIL import UnidentifiedImageError
+
+        try:
+            image = Image.open(uploaded)
+            image.load()
+        except UnidentifiedImageError as e:
+            summary, tech = humanize_processing_error(e)
+            st.error(f"❌ {summary}")
+            with st.expander("Technical details"):
+                st.code(tech)
+            image = None
+        except OSError as e:
+            summary, tech = humanize_processing_error(e)
+            st.error(f"❌ {summary}")
+            with st.expander("Technical details"):
+                st.code(tech)
+            image = None
 elif option == "Capture via Webcam":
     image = capture_webcam()
 
 if image is not None:
+    if image.width < 32 or image.height < 32:
+        st.info("This image is very small; emotion results may be unreliable. Try at least ~200 px on the shortest side if you can.")
+
     try:
         from face_preprocess import pil_to_model_input_from_face
 
-        cache_tag = f"{option}_{use_face_detection}_{pil_rgb_fingerprint(image)}"
+        try:
+            cache_tag = f"{option}_{use_face_detection}_{pil_rgb_fingerprint(image)}"
+        except MemoryError as e:
+            summary, tech = humanize_processing_error(e)
+            st.error(f"❌ {summary}")
+            with st.expander("Technical details"):
+                st.code(tech)
+            st.stop()
+        except Exception as e:
+            summary, tech = humanize_processing_error(e)
+            st.error(f"❌ Could not fingerprint image for caching: {summary}")
+            with st.expander("Technical details"):
+                st.code(tech)
+            st.stop()
+
         cached = st.session_state.get("upload_static_cache_tag") == cache_tag
 
         if not cached:
@@ -188,11 +249,27 @@ if image is not None:
                 )
             if batch is None:
                 st.warning(face_err or "Could not prepare image.")
-                st.caption("Tip: uncheck **Detect & crop face** in the sidebar to run on the full image.")
+                st.caption(
+                    "Tips: use a **front-facing** photo with your face visible, improve **lighting**, "
+                    "or turn off **Detect & crop face** if the detector keeps missing you."
+                )
+                with st.expander("Why this can happen"):
+                    st.markdown(
+                        "- Haar cascades work best on frontal faces in reasonable light.\n"
+                        "- Very small faces in a wide shot may not be detected.\n"
+                        "- Sunglasses / heavy occlusion can hide the face region."
+                    )
                 st.stop()
 
             with st.spinner("🔄 Analyzing emotion..."):
-                emotion, confidence, confidence_scores = predict_emotion(batch)
+                try:
+                    emotion, confidence, confidence_scores = predict_emotion(batch)
+                except Exception as e:
+                    summary, tech = humanize_processing_error(e)
+                    st.error(f"❌ Emotion model failed: {summary}")
+                    with st.expander("Technical details"):
+                        st.code(tech)
+                    st.stop()
 
             st.session_state["upload_static_cache_tag"] = cache_tag
             st.session_state["upload_static_emotion"] = emotion
@@ -215,10 +292,11 @@ if image is not None:
         class_index = labels.index(emotion) if emotion in labels else None
         gcam_img = gradcam_base if gradcam_base is not None else image
         render_gradcam(gcam_img, batch, class_index=class_index)
-    except FileNotFoundError:
-        st.error("❌ Model file not found. Ensure `Model/fer_model.h5` exists.")
     except Exception as e:
-        st.error(f"❌ Error during processing: {e}")
+        summary, tech = humanize_processing_error(e)
+        st.error(f"❌ {summary}")
+        with st.expander("Technical details"):
+            st.code(tech)
 
 # --- Live WebRTC ---
 elif option == "Live Webcam (real-time)":
@@ -258,7 +336,7 @@ elif option == "Live Webcam (real-time)":
                 scores = dict(live_state.scores)
                 err = live_state.error
             if err:
-                status.error(f"Live inference error: {err}")
+                status.error(f"Live inference: {err}")
             elif em:
                 status.markdown(f"**Live readout:** {em.capitalize()} — **{conf:.1f}%**")
                 if scores:
