@@ -6,7 +6,7 @@ import numpy as np
 import streamlit as st
 from PIL import Image
 
-from emotion_detector import predict_emotion
+from emotion_detector import ensemble_models_available, predict_emotion
 from spotify_recommendation import get_playlist_for_emotion
 from user_errors import humanize_processing_error, humanize_song_fetch_error
 
@@ -35,6 +35,14 @@ min_confidence_pct = st.sidebar.slider(
     value=DEFAULT_CONFIDENCE_THRESHOLD,
     step=1.0,
     help="If the top emotion score is below this, song recommendations are hidden unless you opt in.",
+)
+_ensemble_ok = ensemble_models_available()
+use_ensemble = st.sidebar.checkbox(
+    "Ensemble prediction (baseline + balanced)",
+    value=_ensemble_ok,
+    disabled=not _ensemble_ok,
+    help="Average softmax outputs from fer_model.h5 and fer_balanced.h5 for more robust labels. "
+    "Requires both files in Model/.",
 )
 
 
@@ -263,7 +271,7 @@ if image is not None:
 
             with st.spinner("🔄 Analyzing emotion..."):
                 try:
-                    emotion, confidence, confidence_scores = predict_emotion(batch)
+                    emotion, confidence, confidence_scores = predict_emotion(batch, use_ensemble=use_ensemble)
                 except Exception as e:
                     summary, tech = humanize_processing_error(e)
                     st.error(f"❌ Emotion model failed: {summary}")
@@ -280,6 +288,8 @@ if image is not None:
             st.session_state["upload_static_gradcam"] = gradcam_base
 
         st.image(display_img, caption="Image used for prediction (green box = face region)", use_container_width=True)
+        if use_ensemble and _ensemble_ok:
+            st.caption("Prediction mode: **ensemble** (baseline + balanced CNN averaged).")
 
         maybe_render_songs_after_emotion(
             emotion,
@@ -318,9 +328,12 @@ elif option == "Live Webcam (real-time)":
         reset_live_state()
         st.rerun()
 
+    if use_ensemble and _ensemble_ok:
+        st.caption("Live prediction mode: **ensemble** (baseline + balanced CNN averaged).")
+
     ctx = webrtc_streamer(
         key="emotion-live",
-        video_frame_callback=make_video_frame_callback(),
+        video_frame_callback=make_video_frame_callback(use_ensemble=use_ensemble and _ensemble_ok),
         rtc_configuration=RTC_CONFIGURATION,
         media_stream_constraints={"video": True, "audio": False},
     )

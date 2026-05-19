@@ -46,6 +46,7 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 - **Real-time Webcam & Image Upload Support**
 - **Face Detection & Crop**: OpenCV Haar cascades find the largest face before 48×48 grayscale resize (toggle off for whole-image mode). Live webcam prefers a face crop and falls back to the full frame if none is found.
 - **Low-Confidence Guard**: If the top emotion score is below a configurable threshold (default 40%), song recommendations stay hidden until you explicitly opt in — reducing misleading playlists on uncertain predictions.
+- **Ensemble Mode**: Optionally average softmax outputs from the baseline (`fer_model.h5`) and class-balanced (`fer_balanced.h5`) CNNs for more robust predictions (toggle in the sidebar).
 
 ### 🎶 **Intelligent Song Recommendations**
 - **Probabilistic Mapping**: Blends songs based on emotion distribution (e.g., 70% Happy + 30% Sad)
