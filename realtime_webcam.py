@@ -47,7 +47,7 @@ def _bgr_to_model_input(img_bgr: np.ndarray) -> np.ndarray:
     return bgr_frame_to_model_input_from_face(img_bgr, require_face=False)
 
 
-def make_video_frame_callback():
+def make_video_frame_callback(use_ensemble: bool = False):
     """Return a callback for webrtc_streamer(video_frame_callback=...)."""
 
     def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
@@ -60,7 +60,7 @@ def make_video_frame_callback():
             try:
                 tensor = _bgr_to_model_input(img)
                 with _predict_lock:
-                    emotion, confidence, scores = predict_emotion(tensor)
+                    emotion, confidence, scores = predict_emotion(tensor, use_ensemble=use_ensemble)
                 with live_state.lock:
                     live_state.emotion = emotion
                     live_state.confidence = float(confidence)
