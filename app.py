@@ -44,6 +44,11 @@ use_ensemble = st.sidebar.checkbox(
     help="Average softmax outputs from fer_model.h5 and fer_balanced.h5 for more robust labels. "
     "Requires both files in Model/.",
 )
+emotion_chart_style = st.sidebar.selectbox(
+    "Emotion scores chart",
+    ("Radar", "Bar", "Both"),
+    help="Radar shows all seven emotions on one plot; bar is Streamlit's default chart.",
+)
 
 
 def capture_webcam():
@@ -71,9 +76,24 @@ def capture_webcam():
     return None
 
 
-def render_emotion_readout(emotion: str, confidence: float, confidence_scores: dict):
+def render_emotion_readout(
+    emotion: str,
+    confidence: float,
+    confidence_scores: dict,
+    chart_style: str = "Radar",
+):
     st.subheader(f"🎭 Detected Emotion: **{emotion.capitalize()}** ({confidence:.2f}% confidence)")
-    st.bar_chart(confidence_scores)
+
+    if chart_style in ("Radar", "Both"):
+        from emotion_charts import plot_emotion_radar
+
+        fig = plot_emotion_radar(confidence_scores, highlight=emotion)
+        st.pyplot(fig, clear_figure=True)
+
+    if chart_style in ("Bar", "Both"):
+        if chart_style == "Both":
+            st.markdown("**Bar chart**")
+        st.bar_chart(confidence_scores)
 
 
 def _song_refresh_version(key_prefix: str) -> int:
@@ -147,9 +167,10 @@ def maybe_render_songs_after_emotion(
     confidence_scores: dict,
     key_prefix: str,
     threshold: float,
+    chart_style: str = "Radar",
 ):
     """Show songs unless confidence is below threshold (then require opt-in)."""
-    render_emotion_readout(emotion, confidence, confidence_scores)
+    render_emotion_readout(emotion, confidence, confidence_scores, chart_style=chart_style)
     if confidence < threshold:
         st.warning(
             f"**Low confidence** ({confidence:.1f}% is below {threshold:.0f}%). "
@@ -297,6 +318,7 @@ if image is not None:
             confidence_scores,
             key_prefix="upload",
             threshold=min_confidence_pct,
+            chart_style=emotion_chart_style,
         )
         labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
         class_index = labels.index(emotion) if emotion in labels else None
@@ -379,6 +401,7 @@ elif option == "Live Webcam (real-time)":
             st.session_state.get("live_scores") or {},
             key_prefix="live",
             threshold=min_confidence_pct,
+            chart_style=emotion_chart_style,
         )
         if st.button("Clear live results"):
             for k in (

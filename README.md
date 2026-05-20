@@ -55,6 +55,9 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 - **Genre Diversity**: 5+ mood-based search terms per emotion for variety
 - **New songs button**: Refresh iTunes results for the same emotion without re-running the model or re-uploading the image
 
+### 📈 **Emotion score charts**
+- **Radar (spider) chart**: See all seven emotion confidences on one plot (default), with optional bar chart or both
+
 ### 🔍 **Explainability (Grad-CAM)**
 - **Grad-CAM Heatmap Overlay**: Visualize which facial regions influenced the model’s prediction
 - **On-demand Toggle**: Generate the heatmap only when needed to keep the app fast
@@ -274,6 +277,7 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 ├── data/                          # User feedback logs (gitignored)
 │   └── feedback.csv               # Like/Dislike data
 ├── emotion_detector.py            # Emotion prediction logic
+├── emotion_charts.py              # Radar chart for emotion scores
 ├── face_preprocess.py             # Haar face detect → FER 48×48 input
 ├── realtime_webcam.py             # Live WebRTC video + on-frame emotion overlay
 ├── spotify_recommendation.py      # Probabilistic song recommendation (iTunes API)
