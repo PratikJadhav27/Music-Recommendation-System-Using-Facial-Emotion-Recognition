@@ -54,6 +54,7 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 - **30-second Audio Previews**: Listen to song snippets directly inside the app
 - **Genre Diversity**: 5+ mood-based search terms per emotion for variety
 - **New songs button**: Refresh iTunes results for the same emotion without re-running the model or re-uploading the image
+- **More songs + pagination**: Fetches up to ~12 tracks (dominant + secondary mood searches); browse with **Previous / Next** and **3 / 5 / 8 songs per page**
 
 ### 📈 **Emotion score charts**
 - **Radar (spider) chart**: See all seven emotion confidences on one plot (default), with optional bar chart or both
