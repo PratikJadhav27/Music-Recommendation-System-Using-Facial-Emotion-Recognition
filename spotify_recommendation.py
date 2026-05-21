@@ -1,5 +1,6 @@
-import requests
 import random
+
+import requests
 
 # Emotion to music genre/mood search terms for iTunes
 emotion_genre_map = {
@@ -12,15 +13,24 @@ emotion_genre_map = {
     "disgust": ["grunge", "industrial metal", "alternative rock", "dark rock"]
 }
 
+# How many tracks to request per emotion branch (before dedup)
+DEFAULT_DOMINANT_COUNT = 8
+DEFAULT_SECONDARY_COUNT = 5
 
-def get_playlist_for_emotion(emotion, confidence_scores=None):
+
+def get_playlist_for_emotion(
+    emotion,
+    confidence_scores=None,
+    dominant_count: int = DEFAULT_DOMINANT_COUNT,
+    secondary_count: int = DEFAULT_SECONDARY_COUNT,
+):
     """
     Fetch song recommendations from iTunes based on detected emotion and confidence scores.
     Uses the iTunes Search API — no API key or account required.
     """
     genre = random.choice(emotion_genre_map.get(emotion, ["pop"]))
+    offset_dom = random.randint(0, 8)
 
-    # Identify secondary emotion (must be >= 20% confidence)
     secondary_genre = None
     if confidence_scores:
         sorted_emotions = sorted(confidence_scores.items(), key=lambda x: x[1], reverse=True)
@@ -29,17 +39,19 @@ def get_playlist_for_emotion(emotion, confidence_scores=None):
             secondary_genre = random.choice(emotion_genre_map.get(secondary_emotion, ["pop"]))
 
     tracks = []
+    tracks.extend(_search_itunes(genre, limit=dominant_count, offset=offset_dom))
 
-    # 3 tracks for dominant emotion
-    tracks.extend(_search_itunes(genre, limit=3))
-
-    # 2 tracks for secondary emotion (or 2 more dominant if no secondary)
     if secondary_genre:
-        tracks.extend(_search_itunes(secondary_genre, limit=2))
+        tracks.extend(
+            _search_itunes(
+                secondary_genre,
+                limit=secondary_count,
+                offset=random.randint(0, 6),
+            )
+        )
     else:
-        tracks.extend(_search_itunes(genre, limit=2))
+        tracks.extend(_search_itunes(genre, limit=secondary_count, offset=offset_dom + dominant_count))
 
-    # Deduplicate by URL and shuffle
     seen = set()
     unique_tracks = []
     for t in tracks:
@@ -51,7 +63,7 @@ def get_playlist_for_emotion(emotion, confidence_scores=None):
     return unique_tracks
 
 
-def _search_itunes(term, limit=5):
+def _search_itunes(term, limit=5, offset=0):
     """Search the iTunes Search API for music tracks by genre/mood term."""
     try:
         response = requests.get(
@@ -60,10 +72,11 @@ def _search_itunes(term, limit=5):
                 "term": term,
                 "media": "music",
                 "entity": "musicTrack",
-                "limit": max(limit * 2, 10),  # fetch extra to allow dedup
-                "country": "US"
+                "limit": min(max(limit * 2, 12), 50),
+                "offset": max(0, offset),
+                "country": "US",
             },
-            timeout=10
+            timeout=10,
         )
         response.raise_for_status()
         results = response.json().get("results", [])
@@ -71,13 +84,12 @@ def _search_itunes(term, limit=5):
         tracks = []
         for item in results[:limit]:
             artwork = item.get("artworkUrl100", "")
-            # Upgrade artwork to higher resolution
             artwork = artwork.replace("100x100bb", "300x300bb")
             tracks.append({
-                "name":    f"{item.get('trackName', 'Unknown Track')} — {item.get('artistName', 'Unknown Artist')}",
-                "url":     item.get("trackViewUrl", "#"),
-                "image":   artwork,
-                "preview": item.get("previewUrl", "")
+                "name": f"{item.get('trackName', 'Unknown Track')} — {item.get('artistName', 'Unknown Artist')}",
+                "url": item.get("trackViewUrl", "#"),
+                "image": artwork,
+                "preview": item.get("previewUrl", ""),
             })
         return tracks
 

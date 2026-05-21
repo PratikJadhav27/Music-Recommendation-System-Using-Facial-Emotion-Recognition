@@ -1,4 +1,5 @@
 import hashlib
+import math
 import os
 import time
 
@@ -103,28 +104,66 @@ def _song_refresh_version(key_prefix: str) -> int:
 def render_song_recommendations(emotion: str, confidence_scores: dict, key_prefix: str = "main"):
     st.subheader("🎵 Recommended Songs for You:")
     rv = _song_refresh_version(key_prefix)
-    c_refresh, _ = st.columns([1, 4])
+    list_key = f"{key_prefix}_song_list_{rv}"
+
+    c_refresh, c_per_page = st.columns([1, 2])
     with c_refresh:
-        if st.button("🔄 New songs", key=f"{key_prefix}_new_songs_{rv}", help="Fetch a different set of songs for the same emotion (iTunes search is randomized)."):
+        if st.button(
+            "🔄 New songs",
+            key=f"{key_prefix}_new_songs_{rv}",
+            help="Fetch a different set of songs for the same emotion (iTunes search is randomized).",
+        ):
             st.session_state[f"{key_prefix}_song_refresh"] = rv + 1
+            st.session_state.pop(f"{key_prefix}_song_page", None)
             st.rerun()
+    with c_per_page:
+        per_page = st.selectbox(
+            "Songs per page",
+            options=[3, 5, 8],
+            index=1,
+            key=f"{key_prefix}_songs_per_page_{rv}",
+        )
 
-    with st.spinner("🔄 Fetching songs..."):
-        try:
-            tracks = get_playlist_for_emotion(emotion, confidence_scores)
-        except Exception as e:
-            summary, tech = humanize_song_fetch_error(e)
-            st.error(f"❌ {summary}")
-            with st.expander("Technical details"):
-                st.code(tech)
-            return
+    if list_key not in st.session_state:
+        with st.spinner("🔄 Fetching songs..."):
+            try:
+                st.session_state[list_key] = get_playlist_for_emotion(emotion, confidence_scores)
+                st.session_state[f"{key_prefix}_song_page"] = 0
+            except Exception as e:
+                summary, tech = humanize_song_fetch_error(e)
+                st.error(f"❌ {summary}")
+                with st.expander("Technical details"):
+                    st.code(tech)
+                return
 
+    tracks = st.session_state.get(list_key, [])
     if not tracks:
         st.warning("⚠️ No songs found. Please check your internet connection and try again.")
         return
 
-    rv = _song_refresh_version(key_prefix)
-    for idx, track in enumerate(tracks):
+    total = len(tracks)
+    total_pages = max(1, math.ceil(total / per_page))
+    page = int(st.session_state.get(f"{key_prefix}_song_page", 0))
+    page = max(0, min(page, total_pages - 1))
+    st.session_state[f"{key_prefix}_song_page"] = page
+
+    nav1, nav2, nav3 = st.columns([1, 3, 1])
+    with nav1:
+        if st.button("← Previous", key=f"{key_prefix}_prev_{rv}_{page}", disabled=page <= 0):
+            st.session_state[f"{key_prefix}_song_page"] = page - 1
+            st.rerun()
+    with nav2:
+        st.caption(f"Page **{page + 1}** of **{total_pages}** · **{total}** songs total")
+    with nav3:
+        if st.button("Next →", key=f"{key_prefix}_next_{rv}_{page}", disabled=page >= total_pages - 1):
+            st.session_state[f"{key_prefix}_song_page"] = page + 1
+            st.rerun()
+
+    start = page * per_page
+    page_tracks = tracks[start : start + per_page]
+
+    for idx, track in enumerate(page_tracks):
+        global_idx = start + idx
         col1, col2, col3 = st.columns([1, 5, 1])
         with col1:
             if track["image"]:
@@ -136,7 +175,7 @@ def render_song_recommendations(emotion: str, confidence_scores: dict, key_prefi
         with col3:
             fc1, fc2 = st.columns(2)
             with fc1:
-                if st.button("👍", key=f"{key_prefix}_like_{idx}_{emotion}_{rv}"):
+                if st.button("👍", key=f"{key_prefix}_like_{global_idx}_{emotion}_{rv}"):
                     from feedback_manager import log_feedback
 
                     if log_feedback(
@@ -148,7 +187,7 @@ def render_song_recommendations(emotion: str, confidence_scores: dict, key_prefi
                     ):
                         st.success("Thanks for the feedback!", icon="✅")
             with fc2:
-                if st.button("👎", key=f"{key_prefix}_dislike_{idx}_{emotion}_{rv}"):
+                if st.button("👎", key=f"{key_prefix}_dislike_{global_idx}_{emotion}_{rv}"):
                     from feedback_manager import log_feedback
 
                     if log_feedback(
