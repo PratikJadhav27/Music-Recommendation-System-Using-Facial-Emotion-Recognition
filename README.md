@@ -56,6 +56,9 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 - **New songs button**: Refresh iTunes results for the same emotion without re-running the model or re-uploading the image
 - **More songs + pagination**: Fetches up to ~12 tracks (dominant + secondary mood searches); browse with **Previous / Next** and **3 / 5 / 8 songs per page**
 
+### 🎨 **App theme**
+- **Studio Dark**: Optional dark, music-app styling (indigo/emerald accents) aligned with the emotion radar chart — switch in the sidebar or use **Default (Streamlit)** for the native look
+
 ### 📈 **Emotion score charts**
 - **Radar (spider) chart**: See all seven emotion confidences on one plot (default), with optional bar chart or both
 
@@ -278,6 +281,7 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 ├── data/                          # User feedback logs (gitignored)
 │   └── feedback.csv               # Like/Dislike data
 ├── emotion_detector.py            # Emotion prediction logic
+├── app_theme.py                   # Studio Dark CSS theme for Streamlit
 ├── emotion_charts.py              # Radar chart for emotion scores
 ├── face_preprocess.py             # Haar face detect → FER 48×48 input
 ├── realtime_webcam.py             # Live WebRTC video + on-frame emotion overlay
