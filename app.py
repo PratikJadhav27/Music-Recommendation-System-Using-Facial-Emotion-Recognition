@@ -7,6 +7,7 @@ import numpy as np
 import streamlit as st
 from PIL import Image
 
+from app_theme import THEME_OPTIONS, inject_theme, render_hero_subtitle
 from emotion_detector import ensemble_models_available, predict_emotion
 from spotify_recommendation import get_playlist_for_emotion
 from user_errors import humanize_processing_error, humanize_song_fetch_error
@@ -14,9 +15,18 @@ from user_errors import humanize_processing_error, humanize_song_fetch_error
 # Top-class confidence below this (%) is treated as unreliable for song recommendations.
 DEFAULT_CONFIDENCE_THRESHOLD = 40.0
 
-st.set_page_config(page_title="Music & Emotion", layout="wide")
+st.set_page_config(page_title="Music & Emotion", layout="wide", page_icon="🎵")
+
+app_theme = st.sidebar.selectbox(
+    "App theme",
+    THEME_OPTIONS,
+    index=0,
+    help="Studio Dark applies a music-app style palette; Default uses native Streamlit styling.",
+)
+inject_theme(app_theme)
 
 st.title("🎵 Music Recommendation System using Facial Emotion Recognition")
+render_hero_subtitle()
 
 st.sidebar.header("Input")
 option = st.sidebar.radio(
