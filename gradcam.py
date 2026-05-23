@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import numpy as np
 import tensorflow as tf
 from PIL import Image
@@ -5,12 +7,51 @@ from matplotlib import cm
 
 from emotion_detector import get_model
 
+# Cached grad models: (model id, conv layer name) -> tf.keras.Model
+_gradcam_models: dict[tuple[int, str], tf.keras.Model] = {}
+
 
 def _find_last_conv_layer(model: tf.keras.Model) -> str:
     for layer in reversed(model.layers):
         if isinstance(layer, tf.keras.layers.Conv2D):
             return layer.name
     raise ValueError("No Conv2D layer found in model; Grad-CAM unavailable.")
+
+
+def _ensure_model_traced(model: tf.keras.Model, model_input: np.ndarray) -> None:
+    """
+    Sequential models loaded from .h5 may not have layer outputs until built/called.
+    """
+    if model.built and model.output is not None:
+        return
+
+    shape = tuple(model_input.shape[1:])
+    if not model.built:
+        model.build((None,) + shape)
+
+    x = tf.convert_to_tensor(model_input, dtype=tf.float32)
+    _ = model(x, training=False)
+
+
+def _get_grad_model(
+    model: tf.keras.Model,
+    conv_layer_name: str,
+    model_input: np.ndarray,
+) -> tf.keras.Model:
+    cache_key = (id(model), conv_layer_name)
+    if cache_key in _gradcam_models:
+        return _gradcam_models[cache_key]
+
+    _ensure_model_traced(model, model_input)
+
+    conv_layer = model.get_layer(conv_layer_name)
+    inp = model.input
+    if inp is None:
+        raise ValueError("Model input tensor is not available after build; Grad-CAM unavailable.")
+
+    grad_model = tf.keras.Model(inputs=inp, outputs=[conv_layer.output, model.output])
+    _gradcam_models[cache_key] = grad_model
+    return grad_model
 
 
 def compute_gradcam_heatmap(
@@ -33,8 +74,7 @@ def compute_gradcam_heatmap(
     if conv_layer_name is None:
         conv_layer_name = _find_last_conv_layer(model)
 
-    conv_layer = model.get_layer(conv_layer_name)
-    grad_model = tf.keras.models.Model([model.inputs], [conv_layer.output, model.output])
+    grad_model = _get_grad_model(model, conv_layer_name, model_input)
 
     x = tf.convert_to_tensor(model_input, dtype=tf.float32)
     with tf.GradientTape() as tape:
@@ -82,4 +122,3 @@ def overlay_heatmap_on_image(
     colored_img = Image.fromarray(colored, mode="RGB")
 
     return Image.blend(img, colored_img, alpha)
-
