@@ -65,7 +65,12 @@ def humanize_processing_error(exc: BaseException) -> Tuple[str, str]:
             "The emotion model could not be loaded. Ensure `Model/fer_model.h5` exists next to the app.",
             tech,
         )
-    if "no conv2d" in msg or "gradcam" in msg:
+    if (
+        "no conv2d" in msg
+        or "gradcam" in msg
+        or "never been called" in msg
+        or "no defined output" in msg
+    ):
         return (
             "Explainability (Grad-CAM) could not run for this model build. Emotion prediction should still work.",
             tech,
