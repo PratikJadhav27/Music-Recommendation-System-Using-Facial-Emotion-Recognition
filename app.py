@@ -61,6 +61,22 @@ emotion_chart_style = st.sidebar.selectbox(
     help="Radar shows all seven emotions on one plot; bar is Streamlit's default chart.",
 )
 
+st.sidebar.header("Explainability")
+show_gradcam = st.sidebar.checkbox(
+    "Show Grad-CAM heatmap",
+    value=False,
+    help="Optional overlay showing which face regions influenced the predicted emotion.",
+)
+gradcam_alpha = 0.45
+if show_gradcam:
+    gradcam_alpha = st.sidebar.slider(
+        "Heatmap intensity",
+        min_value=0.0,
+        max_value=0.9,
+        value=0.45,
+        step=0.05,
+    )
+
 
 def capture_webcam():
     """Single snapshot from the browser camera (Streamlit)."""
@@ -230,13 +246,19 @@ def maybe_render_songs_after_emotion(
     else:
         render_song_recommendations(emotion, confidence_scores, key_prefix=key_prefix)
 
-def render_gradcam(image: Image.Image, model_input: np.ndarray, class_index: int | None = None):
-    st.subheader("🔍 Explainability (Grad-CAM)")
-    show = st.checkbox("Show Grad-CAM heatmap", value=False)
+def render_gradcam(
+    image: Image.Image,
+    model_input: np.ndarray,
+    class_index: int | None = None,
+    *,
+    show: bool = False,
+    alpha: float = 0.45,
+):
     if not show:
         return
 
-    alpha = st.slider("Heatmap intensity", min_value=0.0, max_value=0.9, value=0.45, step=0.05)
+    st.subheader("🔍 Explainability (Grad-CAM)")
+    st.caption("Brighter areas on the overlay influenced this emotion prediction most.")
     try:
         with st.spinner("Generating Grad-CAM heatmap..."):
             from gradcam import compute_gradcam_heatmap, overlay_heatmap_on_image
@@ -372,7 +394,13 @@ if image is not None:
         labels = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
         class_index = labels.index(emotion) if emotion in labels else None
         gcam_img = gradcam_base if gradcam_base is not None else image
-        render_gradcam(gcam_img, batch, class_index=class_index)
+        render_gradcam(
+            gcam_img,
+            batch,
+            class_index=class_index,
+            show=show_gradcam,
+            alpha=gradcam_alpha,
+        )
     except Exception as e:
         summary, tech = humanize_processing_error(e)
         st.error(f"❌ {summary}")

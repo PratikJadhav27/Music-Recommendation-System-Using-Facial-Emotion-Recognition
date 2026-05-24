@@ -63,8 +63,8 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 - **Radar (spider) chart**: See all seven emotion confidences on one plot (default), with optional bar chart or both
 
 ### 🔍 **Explainability (Grad-CAM)**
-- **Grad-CAM Heatmap Overlay**: Visualize which facial regions influenced the model’s prediction
-- **On-demand Toggle**: Generate the heatmap only when needed to keep the app fast
+- **Grad-CAM heatmap overlay**: Visualize which facial regions influenced the model’s prediction
+- **Sidebar toggle (off by default)**: Enable **Show Grad-CAM heatmap** in the sidebar when you want explainability; keeps the main page focused on emotion + songs
 
 ### 📊 **User Feedback System**
 - **Like/Dislike Buttons**: Collect user preferences per song

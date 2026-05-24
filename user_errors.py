@@ -70,6 +70,7 @@ def humanize_processing_error(exc: BaseException) -> Tuple[str, str]:
         or "gradcam" in msg
         or "never been called" in msg
         or "no defined output" in msg
+        or "get_cmap" in msg
     ):
         return (
             "Explainability (Grad-CAM) could not run for this model build. Emotion prediction should still work.",
