@@ -3,9 +3,18 @@ from __future__ import annotations
 import numpy as np
 import tensorflow as tf
 from PIL import Image
-from matplotlib import cm
+import matplotlib
 
 from emotion_detector import get_model
+
+
+def _resolve_colormap(name: str):
+    """Matplotlib 3.9+ removed cm.get_cmap; use colormaps registry when available."""
+    if hasattr(matplotlib, "colormaps"):
+        return matplotlib.colormaps[name]
+    from matplotlib import cm
+
+    return cm.get_cmap(name)
 
 # Cached grad models: (model id, conv layer name, input shape) -> tf.keras.Model
 _gradcam_models: dict[tuple[int, str, tuple[int, ...]], tf.keras.Model] = {}
@@ -124,7 +133,7 @@ def overlay_heatmap_on_image(
     hm_img = Image.fromarray(np.uint8(hm * 255), mode="L").resize((w, h), Image.BICUBIC)
     hm_arr = np.asarray(hm_img, dtype=np.float32) / 255.0
 
-    cmap = cm.get_cmap(colormap)
+    cmap = _resolve_colormap(colormap)
     colored = (cmap(hm_arr)[:, :, :3] * 255).astype(np.uint8)  # drop alpha channel
     colored_img = Image.fromarray(colored, mode="RGB")
 
