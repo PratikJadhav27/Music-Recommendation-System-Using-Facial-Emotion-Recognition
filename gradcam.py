@@ -7,8 +7,8 @@ from matplotlib import cm
 
 from emotion_detector import get_model
 
-# Cached grad models: (model id, conv layer name) -> tf.keras.Model
-_gradcam_models: dict[tuple[int, str], tf.keras.Model] = {}
+# Cached grad models: (model id, conv layer name, input shape) -> tf.keras.Model
+_gradcam_models: dict[tuple[int, str, tuple[int, ...]], tf.keras.Model] = {}
 
 
 def _find_last_conv_layer(model: tf.keras.Model) -> str:
@@ -18,19 +18,29 @@ def _find_last_conv_layer(model: tf.keras.Model) -> str:
     raise ValueError("No Conv2D layer found in model; Grad-CAM unavailable.")
 
 
-def _ensure_model_traced(model: tf.keras.Model, model_input: np.ndarray) -> None:
+def _build_grad_model(
+    model: tf.keras.Model,
+    conv_layer_name: str,
+    input_shape: tuple[int, ...],
+) -> tf.keras.Model:
     """
-    Sequential models loaded from .h5 may not have layer outputs until built/called.
+    Rebuild a functional sub-model from an explicit Input.
+
+    Keras 3 Sequential models loaded from .h5 do not expose model.input / model.output
+    reliably; tracing layer-by-layer avoids "never been called" errors.
     """
-    if model.built and model.output is not None:
-        return
+    inp = tf.keras.Input(shape=input_shape)
+    x = inp
+    conv_out = None
+    for layer in model.layers:
+        x = layer(x)
+        if layer.name == conv_layer_name:
+            conv_out = x
 
-    shape = tuple(model_input.shape[1:])
-    if not model.built:
-        model.build((None,) + shape)
+    if conv_out is None:
+        raise ValueError(f"Conv layer '{conv_layer_name}' not found in model.")
 
-    x = tf.convert_to_tensor(model_input, dtype=tf.float32)
-    _ = model(x, training=False)
+    return tf.keras.Model(inputs=inp, outputs=[conv_out, x])
 
 
 def _get_grad_model(
@@ -38,18 +48,12 @@ def _get_grad_model(
     conv_layer_name: str,
     model_input: np.ndarray,
 ) -> tf.keras.Model:
-    cache_key = (id(model), conv_layer_name)
+    input_shape = tuple(int(s) for s in model_input.shape[1:])
+    cache_key = (id(model), conv_layer_name, input_shape)
     if cache_key in _gradcam_models:
         return _gradcam_models[cache_key]
 
-    _ensure_model_traced(model, model_input)
-
-    conv_layer = model.get_layer(conv_layer_name)
-    inp = model.input
-    if inp is None:
-        raise ValueError("Model input tensor is not available after build; Grad-CAM unavailable.")
-
-    grad_model = tf.keras.Model(inputs=inp, outputs=[conv_layer.output, model.output])
+    grad_model = _build_grad_model(model, conv_layer_name, input_shape)
     _gradcam_models[cache_key] = grad_model
     return grad_model
 
@@ -84,6 +88,9 @@ def compute_gradcam_heatmap(
         class_score = preds[:, class_index]
 
     grads = tape.gradient(class_score, conv_out)
+    if grads is None:
+        raise RuntimeError("Grad-CAM gradients are None; check model and input shape.")
+
     pooled_grads = tf.reduce_mean(grads, axis=(0, 1, 2))
     conv_out = conv_out[0]
     heatmap = tf.reduce_sum(conv_out * pooled_grads, axis=-1)
