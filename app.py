@@ -9,6 +9,7 @@ from PIL import Image
 
 from app_theme import THEME_OPTIONS, inject_theme, render_hero_subtitle
 from emotion_detector import ensemble_models_available, predict_emotion
+from feedback_manager import feedback_storage_label
 from spotify_recommendation import get_playlist_for_emotion
 from user_errors import humanize_processing_error, humanize_song_fetch_error
 
@@ -76,6 +77,8 @@ if show_gradcam:
         value=0.45,
         step=0.05,
     )
+
+st.sidebar.caption(f"Feedback saved to: **{feedback_storage_label()}**")
 
 
 def capture_webcam():

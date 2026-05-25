@@ -1,5 +1,8 @@
 venv/
 .env
+.streamlit/secrets.toml
+service_account.json
+**/service_account*.json
 __pycache__/
 *.pyc
 dataset/

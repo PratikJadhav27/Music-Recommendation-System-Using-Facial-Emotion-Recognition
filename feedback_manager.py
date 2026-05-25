@@ -2,19 +2,30 @@
 Feedback Manager
 =================
 Handles logging of user feedback (Like/Dislike) for song recommendations.
-This data can be used for future model improvements and personalization.
+
+When Google Sheets credentials are configured (Streamlit secrets), feedback is
+appended to a shared spreadsheet so it survives Streamlit Cloud redeploys.
+Otherwise falls back to local data/feedback.csv.
 """
 
-import os
 import csv
+import logging
+import os
 from datetime import datetime
 
-# Paths
+from feedback_sheets import append_feedback_row, is_sheets_configured
+
+logger = logging.getLogger(__name__)
+
 FEEDBACK_DIR = os.path.join(os.path.dirname(__file__), "data")
 FEEDBACK_FILE = os.path.join(FEEDBACK_DIR, "feedback.csv")
 
-# CSV Headers
 HEADERS = ["timestamp", "emotion", "confidence_scores", "song_name", "song_url", "rating"]
+
+
+def feedback_storage_label() -> str:
+    """Human-readable label for where feedback is stored."""
+    return "Google Sheets" if is_sheets_configured() else "local CSV"
 
 
 def ensure_feedback_file():
@@ -22,14 +33,26 @@ def ensure_feedback_file():
     os.makedirs(FEEDBACK_DIR, exist_ok=True)
 
     if not os.path.exists(FEEDBACK_FILE):
-        with open(FEEDBACK_FILE, 'w', newline='', encoding='utf-8') as f:
+        with open(FEEDBACK_FILE, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(HEADERS)
 
 
+def _append_csv(row: list) -> bool:
+    ensure_feedback_file()
+    try:
+        with open(FEEDBACK_FILE, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(row)
+        return True
+    except Exception as e:
+        logger.warning("CSV feedback append failed: %s", e)
+        return False
+
+
 def log_feedback(emotion, confidence_scores, song_name, song_url, rating):
     """
-    Log user feedback to CSV.
+    Log user feedback to Google Sheets (if configured) and/or local CSV.
 
     Args:
         emotion (str): The detected dominant emotion.
@@ -38,32 +61,28 @@ def log_feedback(emotion, confidence_scores, song_name, song_url, rating):
         song_url (str): iTunes URL of the song.
         rating (int): 1 for Like, -1 for Dislike.
     """
-    ensure_feedback_file()
-
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     confidence_str = str(confidence_scores) if confidence_scores else "{}"
     row = [timestamp, emotion, confidence_str, song_name, song_url, rating]
 
-    try:
-        with open(FEEDBACK_FILE, 'a', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow(row)
-        return True
-    except Exception as e:
-        print(f"Error logging feedback: {e}")
-        return False
+    if is_sheets_configured():
+        if append_feedback_row(row):
+            return True
+        logger.warning("Sheets append failed; falling back to local CSV.")
+
+    return _append_csv(row)
 
 
 def get_feedback_stats():
     """
-    Get basic statistics from the feedback log.
+    Get basic statistics from the feedback log (local CSV only).
     Returns: dict with total_likes, total_dislikes, total_entries.
     """
     if not os.path.exists(FEEDBACK_FILE):
         return {"total_likes": 0, "total_dislikes": 0, "total_entries": 0}
 
     try:
-        with open(FEEDBACK_FILE, 'r', encoding='utf-8') as f:
+        with open(FEEDBACK_FILE, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
             likes = 0
             dislikes = 0
@@ -79,8 +98,8 @@ def get_feedback_stats():
             return {
                 "total_likes": likes,
                 "total_dislikes": dislikes,
-                "total_entries": total
+                "total_entries": total,
             }
     except Exception as e:
-        print(f"Error reading feedback stats: {e}")
+        logger.warning("Error reading feedback stats: %s", e)
         return {"total_likes": 0, "total_dislikes": 0, "total_entries": 0}

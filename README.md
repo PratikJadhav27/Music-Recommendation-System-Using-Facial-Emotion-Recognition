@@ -68,7 +68,8 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
 
 ### 📊 **User Feedback System**
 - **Like/Dislike Buttons**: Collect user preferences per song
-- **Data Logging**: Stores feedback in `data/feedback.csv` for future model improvements
+- **Persistent storage (optional)**: Append feedback to **Google Sheets** via Streamlit secrets — survives Streamlit Cloud redeploys
+- **Local fallback**: Without Sheets configured, logs to `data/feedback.csv` (ephemeral on Cloud)
 - **Continuous Learning**: Foundation for a personalized recommendation engine
 
 ### 🛟 **Clearer errors**
@@ -92,7 +93,7 @@ This project demonstrates **end-to-end machine learning** for emotion recognitio
         │                         ▼
         │                ┌────────────────────┐
         │                │ feedback_manager.py│
-        │                │  (CSV Logging)     │
+        │                │ Sheets or CSV log  │
         │                └────────────────────┘
         │
 ┌───────▼─────────────────────────────────────────┐
@@ -190,6 +191,20 @@ pip install -r requirements.txt
    - The `Model/fer_model.h5` file should be present in the repo
    - If missing, see [Training Your Own Models](#training-your-own-models)
 
+5. **(Optional) Persistent feedback with Google Sheets**
+
+   Without this step, 👍/👎 still work but only save to local `data/feedback.csv`.
+
+   1. In [Google Cloud Console](https://console.cloud.google.com/), create a project and enable **Google Sheets API** and **Google Drive API**.
+   2. Create a **service account**, download its JSON key.
+   3. Create a Google Sheet and **Share** it with the service account email (Editor).
+   4. Copy the **Sheet ID** from the URL: `https://docs.google.com/spreadsheets/d/<SHEET_ID>/edit`
+   5. Add secrets (see `.streamlit/secrets.toml.example`):
+      - Local: copy the example to `.streamlit/secrets.toml` and fill in `[feedback]` + `[gcp_service_account]`.
+      - **Streamlit Cloud**: App → **Settings** → **Secrets** — paste the same TOML (never commit real keys to GitHub).
+
+   The sidebar shows **Feedback saved to: Google Sheets** when configured.
+
 ---
 
 ## 💻 Usage
@@ -286,7 +301,9 @@ Music-Recommendation-System-Using-Facial-Emotion-Recognition/
 ├── face_preprocess.py             # Haar face detect → FER 48×48 input
 ├── realtime_webcam.py             # Live WebRTC video + on-frame emotion overlay
 ├── spotify_recommendation.py      # Probabilistic song recommendation (iTunes API)
-├── feedback_manager.py            # Feedback logging system
+├── feedback_manager.py            # Feedback logging (Sheets or CSV)
+├── feedback_sheets.py             # Optional Google Sheets append
+├── .streamlit/secrets.toml.example  # Template for Sheets credentials
 ├── user_errors.py                 # User-facing error messages for UI
 ├── app.py                         # Main Streamlit web application
 ├── requirements.txt               # Python dependencies
